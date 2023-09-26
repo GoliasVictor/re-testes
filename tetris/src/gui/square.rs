@@ -1,6 +1,6 @@
 use crate::vector2::Vec2;
-
-pub struct Square {
+#[derive(Debug)]
+pub struct Rect {
     pub size: Vec2,
     pub center: Vec2,
 }

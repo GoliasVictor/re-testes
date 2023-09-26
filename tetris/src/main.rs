@@ -1,6 +1,8 @@
 mod gui;
 #[macro_use]
 mod core;
+mod logic;
+
 extern crate glium;
 use glium::{
     glutin::{event, event::KeyboardInput, event_loop},
@@ -9,7 +11,7 @@ use glium::{
 use std::time;
 
 pub use crate::core::vector2;
-use crate::gui::{Interface, Object, Square};
+use crate::{gui::{Interface, Object, Rect}, logic::GameState};
 fn main() {
     const TARGET_FPS: u64 = 120;
     let event_loop = event_loop::EventLoop::new();
@@ -17,15 +19,21 @@ fn main() {
 
 
     let mut obj = Object {
-        format: Square {
+        format: Rect {
             size: vec2!(10., 10.),
             center: vector2::ZERO,
         },
         color: [1., 1., 1.],
     };
-
+    let mut game_state = GameState::new(10, 10);
+    let mut last_start =   time::Instant::now();
+    let mut last_end =   time::Instant::now();
+    let mut last_delta_time = 0;
     event_loop.run(move |ev, _, control_flow| {
+        last_end = time::Instant::now();
+        last_delta_time = last_end.duration_since(last_start).as_micros() as u64;
         let start_time = time::Instant::now();
+        last_start = start_time;
         match ev {
             event::Event::WindowEvent { event, .. } => match event {
                 event::WindowEvent::CloseRequested => {
@@ -48,20 +56,25 @@ fn main() {
                             ..
                         },
                     ..
-                } => match input {
-                    event::VirtualKeyCode::Up => obj.format.center += vector2::UP,
-                    event::VirtualKeyCode::Down => obj.format.center += vector2::DOWN,
-                    event::VirtualKeyCode::Left => obj.format.center += vector2::LEFT,
-                    event::VirtualKeyCode::Right => obj.format.center += vector2::RIGHT,
-                    _ => (),
-                },
+                } =>{
+                    game_state.key_press(input);
+
+                    match input {
+                        event::VirtualKeyCode::Up => obj.format.center += vector2::UP,
+                        event::VirtualKeyCode::Down => obj.format.center += vector2::DOWN,
+                        event::VirtualKeyCode::Left => obj.format.center += vector2::LEFT,
+                        event::VirtualKeyCode::Right => obj.format.center += vector2::RIGHT,
+                        _ => (),
+                    }   
+                },    
+
                 _ => (),
             },
-
+            
             event::Event::RedrawRequested(_) => {
                 let mut canvas = facade.draw();
                 canvas.target.clear_color(0.0, 0.0, 0.0, 1.0);
-
+                game_state.update(&mut canvas, last_delta_time);
                 canvas.draw_obj(&obj);
                 canvas.target.finish().unwrap();
             }

@@ -1,6 +1,7 @@
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 #[derive(Clone, Copy)]
+#[derive(Debug)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
