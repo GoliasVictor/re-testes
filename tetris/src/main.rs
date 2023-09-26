@@ -41,8 +41,7 @@ fn main() {
                     facade
                         .display
                         .gl_window()
-                        .window()
-                        .set_inner_size(window_size);
+                        .window();
                     facade.camera.target.size.x =
                         (window_size.height as f32) / (window_size.width as f32);
                 }
