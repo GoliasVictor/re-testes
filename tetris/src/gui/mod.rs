@@ -6,7 +6,7 @@ use glium::{
     Display, Frame, Program, Surface, uniform, implement_vertex,
 };
 
-pub use square::Square;
+pub use square::Rect;
 pub use transform::*;
 use crate::vector2;
 use crate::vec2;
@@ -21,8 +21,8 @@ implement_vertex!(Vertex, position, color);
 
 
 pub struct Camera {
-    pub world: Square,
-    pub target: Square,
+    pub world: Rect,
+    pub target: Rect,
 }
 impl Camera {
     pub fn get_transformation(&self, pos: Vec2) -> transform::Transform {
@@ -67,11 +67,11 @@ impl Interface {
 
         let dims = display.get_framebuffer_dimensions();
         let camera = Camera {
-            world: Square {
+            world: Rect {
                 center: vec2!(0., 0.),
                 size: vec2!(100., 100.),
             },
-            target: Square {
+            target: Rect {
                 center: vec2!(0., 0.),
                 size: Vec2 {
                     x: (dims.1 as f32) / (dims.0 as f32),
@@ -135,13 +135,14 @@ impl<'a> Canvas<'a> {
             .unwrap();
     }
 }
+#[derive(Debug)]
 pub struct Object {
-    pub format: Square,
+    pub format: Rect,
     pub color: [f32; 3],
 }
 impl Object {
     fn to_vertex_buffer(&self) -> Vec<Vertex> {
-        let Square { center, size } = self.format;
+        let Rect { center, size } = self.format;
         vec![
             Vertex {
                 position: (center - size / 2.).into(),
