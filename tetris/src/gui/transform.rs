@@ -1,12 +1,8 @@
 use crate::vector2::Vec2;
-
-
 use std::ops::Deref;
-
-
+use super::Rect;
 
 type Matrix = [[f32; 4]; 4];
-
 
 fn mult_matrix<const A: usize, const B: usize, const C: usize>(
     x: &[[f32; A]; B],
@@ -20,7 +16,6 @@ fn mult_matrix<const A: usize, const B: usize, const C: usize>(
     }
     result
 }
-
 
 pub struct Transform(pub Matrix);
 
@@ -78,5 +73,24 @@ pub mod transform_funcs {
             [0., 0., 1., 0.],
             [0., 0., 0., 1.],
         ]
+    }
+}
+
+
+pub struct Camera {
+    pub world: Rect,
+    pub target: Rect,
+}
+impl Camera {
+    pub fn get_transformation(&self, pos: Vec2) -> Transform {
+        let pos = pos - self.world.center;
+        let scale = Vec2 {
+            x: self.target.size.x / self.world.size.x,
+            y: self.target.size.y / self.world.size.y,
+        };
+        Transform::default()
+            .translate(pos)
+            .scale(scale)
+            .translate(self.target.center)
     }
 }
