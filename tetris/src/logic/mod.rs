@@ -1,7 +1,6 @@
 use glium::glutin::event::VirtualKeyCode;
 use rand::{rngs::ThreadRng, Rng};
-
-use crate::gui::{Canvas, Object, Rect};
+use crate::gui::{ Object, Rect, interface::Canvas};
 
 #[derive(Clone,Debug)]
 pub struct Tetramino {
@@ -41,8 +40,8 @@ impl Player {
         for i in 0..2 {
             for j in 0..4 {
                 if self.tetramino.blocks[i as usize][j as usize] {
-                    let ni = i * self.rotation[0][0] + j * self.rotation[0][1];
-                    let nj = i * self.rotation[1][0] + j * self.rotation[1][1];
+                    let ni = (i-1) * self.rotation[0][0] + (j) * self.rotation[0][1];
+                    let nj = (i-1) * self.rotation[1][0] + (j) * self.rotation[1][1];
                     let x = self.position.0 as i8 + ni;
                     let y = self.position.1 as i8 + nj;
                     buffer.push(to_object((x as u8, y as u8)));

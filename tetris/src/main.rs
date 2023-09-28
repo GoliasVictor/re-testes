@@ -11,11 +11,11 @@ use glium::{
 use std::time;
 
 pub use crate::core::vector2;
-use crate::{gui::{Interface, Object, Rect}, logic::GameState};
+use crate::{gui::{ Object, Rect, interface}, logic::GameState};
 fn main() {
     const TARGET_FPS: u64 = 120;
     let event_loop = event_loop::EventLoop::new();
-    let mut facade = Interface::create(&event_loop);
+    let mut facade = interface::Interface::create(&event_loop);
 
 
     let mut obj = Object {
@@ -27,14 +27,11 @@ fn main() {
     };
     let mut game_state = GameState::new(10, 10);
     let mut last_start =   time::Instant::now();
-    let mut last_end =   time::Instant::now();
     let mut last_delta_time = 0;
     event_loop.run(move |ev, _, control_flow| {
-        last_end = time::Instant::now();
-        last_delta_time = last_end.duration_since(last_start).as_micros() as u64;
         let start_time = time::Instant::now();
         last_start = start_time;
-        match ev {
+        match ev {   
             event::Event::WindowEvent { event, .. } => match event {
                 event::WindowEvent::CloseRequested => {
                     *control_flow = event_loop::ControlFlow::Exit;
@@ -72,8 +69,10 @@ fn main() {
             },
             
             event::Event::RedrawRequested(_) => {
+                
                 let mut canvas = facade.draw();
                 canvas.target.clear_color(0.0, 0.0, 0.0, 1.0);
+                last_delta_time = time::Instant::now().duration_since(last_start).as_micros() as u64;
                 game_state.update(&mut canvas, last_delta_time);
                 canvas.draw_obj(&obj);
                 canvas.target.finish().unwrap();
