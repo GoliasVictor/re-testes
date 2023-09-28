@@ -58,7 +58,7 @@ pub struct GameState {
     rng: ThreadRng,
     columns: u8,
     rows: u8,
-	time: u64
+	time: u128
 }
 
 impl GameState {
@@ -110,10 +110,10 @@ impl GameState {
     		_ => (),
 		}
 	}
-    pub fn update(&mut self, canvas: &mut Canvas, delta_t : u64) {
+    pub fn update(&mut self, canvas: &mut Canvas, delta_t : u128) {
         canvas.draw_buffer(self.player.to_object_buffer().into_iter());
-		self.time +=  delta_t;
-		if self.time >= 10000 {
+		self.time += delta_t;
+		if self.time >= 150 {
 			if self.player.position.1 > 0 {
 
 				self.player.position.1 -= 1;

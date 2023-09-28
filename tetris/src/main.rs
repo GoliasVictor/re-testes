@@ -27,9 +27,10 @@ fn main() {
     };
     let mut game_state = GameState::new(10, 10);
     let mut last_start =   time::Instant::now();
-    let mut last_delta_time = 0;
+    let mut last_delta_time: u128 = 0;
     event_loop.run(move |ev, _, control_flow| {
         let start_time = time::Instant::now();
+        last_delta_time = time::Instant::now().duration_since(last_start).as_micros() as u128;
         last_start = start_time;
         match ev {   
             event::Event::WindowEvent { event, .. } => match event {
@@ -71,7 +72,7 @@ fn main() {
                 
                 let mut canvas = facade.draw();
                 canvas.target.clear_color(0.0, 0.0, 0.0, 1.0);
-                last_delta_time = time::Instant::now().duration_since(last_start).as_micros() as u64;
+                //last_delta_time = time::Instant::now().duration_since(last_start).as_micros() as u64;
                 game_state.update(&mut canvas, last_delta_time);
                 canvas.draw_obj(&obj);
                 canvas.target.finish().unwrap();
