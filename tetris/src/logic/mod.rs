@@ -13,7 +13,7 @@ const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
     TetraminoTemplate{blocks: 0b11100100, color: [241, 196, 15]}, // T
     TetraminoTemplate{blocks: 0b00101110, color: [241, 196, 15]}, // L
     TetraminoTemplate{blocks: 0b10001110, color: [241, 196, 15]}, // Reverse L
-    TetraminoTemplate{blocks: 0b11111000, color: [241, 196, 15]}, // Straight
+    TetraminoTemplate{blocks: 0b11110000 , color: [241, 196, 15]}, // Straight
     TetraminoTemplate{blocks: 0b11000110, color: [241, 196, 15]}, // Z
     TetraminoTemplate{blocks: 0b01101100, color: [241, 196, 15]} // S
 ];
