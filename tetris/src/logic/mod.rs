@@ -5,7 +5,7 @@ use crate::gui::{ Object, Rect, interface::Canvas};
 #[derive(Clone, Debug)]
 struct TetraminoTemplate { // Used to create the default Tetraminos
     blocks: u8, // Binary number for the blocks, first four represent top row, last four represent bottom
-    color: [u8; 3],
+    color: (u8; 3),
 }
 
 const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
