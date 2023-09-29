@@ -3,8 +3,10 @@ use rand::{rngs::ThreadRng, Rng};
 use crate::gui::{ Object, Rect, interface::Canvas};
 
 #[derive(Clone, Debug)]
-struct TetraminoTemplate { // Used to create the default Tetraminos
-    blocks: u8, // Binary number for the blocks, first four represent top row, last four represent bottom
+/// Used to create the default Tetraminos
+struct TetraminoTemplate {
+    /// Binary number for the blocks, first four represent top row, last four represent bottom 
+    blocks: u8, 
     color: (u8, u8, u8),
 }
 
@@ -18,13 +20,6 @@ const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
     TetraminoTemplate{blocks: 0b01101100, color: (46, 204, 113)} // S
 ];
 
-/*let block = [[1, 1, 0, 0], [1, 1, 0, 0]]; // Block
-        let t = [[1, 1, 1, 0], [0, 1, 0, 0]]; // T
-        let l = [[0, 0, 1, 0], [1, 1, 1, 0]]; // L
-        let reverse_l = [[1, 0, 0, 0], [1, 1, 1, 0]]; // Reverse L
-        let straight = [[1, 1, 1, 1], [0, 0, 0, 0]]; // Straight
-        let z = [[1, 1, 0, 0], [0, 1, 1, 0]]; // Z
-        let s = [[0, 1, 1, 0], [1, 1, 0, 0]]; // S */
 
 #[derive(Clone,Debug)]
 pub struct Tetramino {
@@ -57,8 +52,8 @@ impl Tetramino {
             block_positions: block_positions,
         };
     }
-
-    fn get_center(&mut self) -> (f64, f64) { // Get tetramino center relative to its blocks
+    /// Get tetramino center relative to its blocks
+    fn get_center(&mut self) -> (f64, f64) { 
         let mut center: (f64, f64) = (0.0, 0.0);
         let mut block_count: u8 = 0;
 
@@ -133,17 +128,6 @@ fn to_object(position: (u8, u8), color: (u8, u8, u8)) -> Object {
 impl Player {
     fn to_object_buffer(&self) -> Vec<Object> {
         let mut buffer = vec![];
-        /*for i in 0..2 {
-            for j in 0..4 {
-                if self.tetramino.blocks[i as usize][j as usize] {
-                    let ni = (i-1) * self.rotation[0][0] + (j) * self.rotation[0][1];
-                    let nj = (i-1) * self.rotation[1][0] + (j) * self.rotation[1][1];
-                    let x = self.position.0 as i8 + ni;
-                    let y = self.position.1 as i8 + nj;
-                    buffer.push(to_object((x as u8, y as u8)));
-                }
-            }
-        }*/
         for i in 0..4 {
             match self.tetramino.block_positions[i] {
                 None => continue,
@@ -169,25 +153,13 @@ pub struct GameState {
 
 impl GameState {
     fn next_player(&mut self) -> Player {
-        //let tetramino = self.tetraminos[self.rng.gen_range(0..7)].clone();
 		let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[self.rng.gen_range(0..7)].clone());
         Player {
 			position: (((self.columns as f32 / 2.).ceil() as u8), self.rows),
-			// rotation: [[1,0], [0,1]],
 			tetramino 
 		}
     }
     pub fn new(columns: u8, rows: u8) -> GameState {
-        /*
-        let block = [[1, 1, 0, 0], [1, 1, 0, 0]]; // Block
-        let t = [[1, 1, 1, 0], [0, 1, 0, 0]]; // T
-        let l = [[0, 0, 1, 0], [1, 1, 1, 0]]; // L
-        let reverse_l = [[1, 0, 0, 0], [1, 1, 1, 0]]; // Reverse L
-        let straight = [[1, 1, 1, 1], [0, 0, 0, 0]]; // Straight
-        let z = [[1, 1, 0, 0], [0, 1, 1, 0]]; // Z
-        let s = [[0, 1, 1, 0], [1, 1, 0, 0]]; // S
-        //let tetraminos = [block, t, l, reverse_l, straight, z, s].map(Tetramino::new);
-        */
         let mut rng = rand::thread_rng();
 
         let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[rng.gen_range(0..7)].clone());
@@ -202,7 +174,7 @@ impl GameState {
 			rng: rng,
             columns: columns,
             rows: rows,
-            max_time: 10000,
+            max_time: 1000000,
         }
 	}
 	pub fn key_press(&mut self, key : VirtualKeyCode) {
