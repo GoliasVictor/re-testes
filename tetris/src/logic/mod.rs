@@ -5,17 +5,17 @@ use crate::gui::{ Object, Rect, interface::Canvas};
 #[derive(Clone, Debug)]
 struct TetraminoTemplate { // Used to create the default Tetraminos
     blocks: u8, // Binary number for the blocks, first four represent top row, last four represent bottom
-    color: (u8; 3),
+    color: (u8, u8, u8),
 }
 
 const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
-    TetraminoTemplate{blocks: 0b11001100, color: [241, 196, 15]}, // Square
-    TetraminoTemplate{blocks: 0b11100100, color: [241, 196, 15]}, // T
-    TetraminoTemplate{blocks: 0b00101110, color: [241, 196, 15]}, // L
-    TetraminoTemplate{blocks: 0b10001110, color: [241, 196, 15]}, // Reverse L
-    TetraminoTemplate{blocks: 0b11110000 , color: [241, 196, 15]}, // Straight
-    TetraminoTemplate{blocks: 0b11000110, color: [241, 196, 15]}, // Z
-    TetraminoTemplate{blocks: 0b01101100, color: [241, 196, 15]} // S
+    TetraminoTemplate{blocks: 0b11001100, color: (241, 196, 15)}, // Square
+    TetraminoTemplate{blocks: 0b11100100, color: (142, 68, 173)}, // T
+    TetraminoTemplate{blocks: 0b00101110, color: (230, 126, 34)}, // L
+    TetraminoTemplate{blocks: 0b10001110, color: (41, 128, 185)}, // Reverse L
+    TetraminoTemplate{blocks: 0b11110000 , color: (93, 173, 226)}, // Straight
+    TetraminoTemplate{blocks: 0b11000110, color: (231, 76, 60)}, // Z
+    TetraminoTemplate{blocks: 0b01101100, color: (46, 204, 113)} // S
 ];
 
 /*let block = [[1, 1, 0, 0], [1, 1, 0, 0]]; // Block
@@ -29,7 +29,7 @@ const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
 #[derive(Clone,Debug)]
 pub struct Tetramino {
     block_positions: [Option<(f64, f64)>; 4],
-    color:  [u8; 3],
+    color:  (u8, u8, u8),
 }
 
 impl Tetramino {
@@ -110,8 +110,14 @@ pub struct Player {
     tetramino: Tetramino,
     position: (u8, u8),
 }
-fn to_object(position: (u8, u8)) -> Object {
+fn to_object(position: (u8, u8), color: (u8, u8, u8)) -> Object {
     const SIZE: f32 = 5.;
+    let mut f_color: [f32; 3] = [0.0; 3];
+    f_color[0] = color.0 as f32 / 255.0;
+    f_color[1] = color.1 as f32 / 255.0;
+    f_color[2] = color.2 as f32 / 255.0;
+
+
     return Object {
         format: Rect {
             center: vec2!(
@@ -120,7 +126,7 @@ fn to_object(position: (u8, u8)) -> Object {
             ),
             size: vec2!(SIZE, SIZE),
         },
-        color: [1., 0., 0.],
+        color: f_color,
     };
 }
 
@@ -144,7 +150,7 @@ impl Player {
                 Some(block) => {
                     let x: f64 = self.position.0 as f64 + block.0;
                     let y: f64 = self.position.1 as f64 + block.1;
-                    buffer.push(to_object((x as u8, y as u8)));
+                    buffer.push(to_object((x as u8, y as u8), self.tetramino.color));
                 },
             }
         }
