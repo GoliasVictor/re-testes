@@ -58,7 +58,8 @@ pub struct GameState {
     rng: ThreadRng,
     columns: u8,
     rows: u8,
-	time: u128
+	time: u128,
+    max_time: u128,
 }
 
 impl GameState {
@@ -96,6 +97,7 @@ impl GameState {
 			rng,
             columns,
             rows,
+            max_time: 10000,
         }
 	}
 	pub fn key_press(&mut self, key : VirtualKeyCode) {
@@ -113,12 +115,12 @@ impl GameState {
     pub fn update(&mut self, canvas: &mut Canvas, delta_t : u128) {
         canvas.draw_buffer(self.player.to_object_buffer().into_iter());
 		self.time += delta_t;
-		if self.time >= 150 {
+		if self.time >= self.max_time {
 			if self.player.position.1 > 0 {
 
 				self.player.position.1 -= 1;
 			}
-			self.time = 0;
+			self.time -= self.max_time;
 		}  
     }
 }
