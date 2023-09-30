@@ -1,6 +1,8 @@
+use std::convert::identity;
+
 use glium::glutin::event::VirtualKeyCode;
 use rand::{rngs::ThreadRng, Rng};
-use crate::gui::{ Object, Rect, interface::Canvas};
+use crate::{gui::{ Object, Rect, interface::Canvas}, vector2};
 
 #[derive(Clone, Debug)]
 /// Used to create the default Tetraminos
@@ -77,24 +79,21 @@ impl Tetramino {
     fn rotate(&mut self) {
         let center = self.get_center();
         for i in 0..4 {
-            match self.block_positions[i] {
-                None => continue,
-                Some(block) => {
-                    let mut relative_position: (f64, f64) = center;
-                    relative_position.0 -= block.0;
-                    relative_position.1 -= block.1;
+            if let Some(block) = self.block_positions[i] {
+                let mut relative_position: (f64, f64) = center;
+                relative_position.0 -= block.0;
+                relative_position.1 -= block.1;
             
-                    let mut x_multiplier: i8 = 1;
-                    let mut y_multiplier: i8 = 1;
+                let mut x_multiplier: i8 = 1;
+                let mut y_multiplier: i8 = 1;
 
-                    if relative_position.0 <= 0.0 { y_multiplier = -1 }
-                    if relative_position.1 >= 0.0 { x_multiplier = -1 }
+                if relative_position.0 <= 0.0 { y_multiplier = -1 }
+                if relative_position.1 >= 0.0 { x_multiplier = -1 }
 
-                    let mut position: (f64, f64) = (0.0, 0.0);
-                    position.0 = center.0 + (relative_position.1.abs() * x_multiplier as f64);
-                    position.1 = center.1 + (relative_position.0.abs() * y_multiplier as f64);
-                    self.block_positions[i] = Some(position);
-                },
+                let mut position: (f64, f64) = (0.0, 0.0);
+                position.0 = center.0 + (relative_position.1.abs() * x_multiplier as f64);
+                position.1 = center.1 + (relative_position.0.abs() * y_multiplier as f64);
+                self.block_positions[i] = Some(position);
             }
         }
     }
@@ -105,8 +104,8 @@ pub struct Player {
     tetramino: Tetramino,
     position: (u8, u8),
 }
+const SIZE: f32 = 5.;
 fn to_object(position: (u8, u8), color: (u8, u8, u8)) -> Object {
-    const SIZE: f32 = 5.;
     let mut f_color: [f32; 3] = [0.0; 3];
     f_color[0] = color.0 as f32 / 255.0;
     f_color[1] = color.1 as f32 / 255.0;
@@ -127,18 +126,11 @@ fn to_object(position: (u8, u8), color: (u8, u8, u8)) -> Object {
 
 impl Player {
     fn to_object_buffer(&self) -> Vec<Object> {
-        let mut buffer = vec![];
-        for i in 0..4 {
-            match self.tetramino.block_positions[i] {
-                None => continue,
-                Some(block) => {
-                    let x: f64 = self.position.0 as f64 + block.0;
-                    let y: f64 = self.position.1 as f64 + block.1;
-                    buffer.push(to_object((x as u8, y as u8), self.tetramino.color));
-                },
-            }
-        }
-        buffer
+        self.tetramino.block_positions.into_iter().filter_map(identity).map(|block| {
+            let x: f64 = self.position.0 as f64 + block.0;
+            let y: f64 = self.position.1 as f64 + block.1;
+            to_object((x as u8, y as u8), self.tetramino.color)
+        }).collect()
     }
 }
 #[derive(Debug)]
@@ -155,7 +147,7 @@ impl GameState {
     fn next_player(&mut self) -> Player {
 		let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[self.rng.gen_range(0..7)].clone());
         Player {
-			position: (((self.columns as f32 / 2.).ceil() as u8), self.rows),
+			position: (((self.columns as f32 / 2.).ceil() as u8) - 2, self.rows),
 			tetramino 
 		}
     }
@@ -164,7 +156,7 @@ impl GameState {
 
         let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[rng.gen_range(0..7)].clone());
         let player = Player {
-			position: (((columns as f32 / 2.).ceil() as u8), rows),
+			position: (((columns as f32 / 2.).ceil() as u8 - 2), rows),
 			tetramino 
 		};
 
@@ -177,7 +169,7 @@ impl GameState {
             max_time: 1000000,
         }
 	}
-	pub fn key_press(&mut self, key : VirtualKeyCode) {
+	pub fn key_down(&mut self, key : VirtualKeyCode) {
 		match key {
     		VirtualKeyCode::R => {
 			    self.player.tetramino.rotate();
@@ -187,11 +179,22 @@ impl GameState {
 		}
 	}
     pub fn update(&mut self, canvas: &mut Canvas, delta_t : u128) {
-        canvas.draw_buffer(self.player.to_object_buffer().into_iter());
+
+
+        canvas.draw_obj(&Object {
+            color: [0., 0., 1.],
+            format: Rect { 
+                size: vec2!(1., 1.) , 
+                center: vector2::ZERO 
+            }
+        });
+        canvas.draw_buffer(self.player.to_object_buffer().into_iter().map(|mut object|{
+            object.format.center -= vec2!(self.columns as f32 * SIZE/2., self.rows as f32 * SIZE/2.);
+            object
+        }));
 		self.time += delta_t;
 		if self.time >= self.max_time {
 			if self.player.position.1 > 0 {
-
 				self.player.position.1 -= 1;
 			}
 			self.time -= self.max_time;
