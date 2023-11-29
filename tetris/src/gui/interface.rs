@@ -5,7 +5,6 @@ use glium::{
      Display, Program, Frame, uniform, Surface,
 };
 
-use crate::vector2;
 use crate::vec2;
 use crate::vector2::Vec2;
 
@@ -80,7 +79,7 @@ pub struct Canvas<'a> {
 
 impl<'a> Canvas<'a> {
     pub fn draw_obj(&mut self, obj: &Object) {
-        let camera: transform::Transform = self.interface.camera.get_transformation(vector2::ZERO);
+        let camera: transform::Transform = self.interface.camera.get_transformation(Vec2::ZERO);
         let uniforms = uniform! {
             matrix:  camera.0,
         };
@@ -98,7 +97,7 @@ impl<'a> Canvas<'a> {
     pub fn draw_buffer<T: Iterator<Item = Object>>(&mut self, buffer : T ){
         let vertex_buffer = buffer.flat_map(|o| o.to_vertex_buffer()).collect::<Vec<Vertex>>();
 
-        let camera: transform::Transform = self.interface.camera.get_transformation(vector2::ZERO);
+        let camera: transform::Transform = self.interface.camera.get_transformation(Vec2::ZERO);
         let uniforms = uniform! {
             matrix:  camera.0,
         };

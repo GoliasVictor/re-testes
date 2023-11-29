@@ -1,7 +1,10 @@
-mod gui;
+#![feature(trait_alias)]
+
+pub mod gui;
+/// Module containing the engine core, vital parts such as vectors
 #[macro_use]
-mod core;
-mod logic;
+pub mod core;
+pub mod logic;
 
 extern crate glium;
 use glium::{
@@ -12,6 +15,7 @@ use std::time;
 
 pub use crate::core::vector2;
 use crate::{gui::interface, logic::GameState};
+
 fn main() {
     const TARGET_FPS: u64 = 120;
     let event_loop = event_loop::EventLoop::new();
@@ -19,6 +23,7 @@ fn main() {
     let mut game_state = GameState::new(10, 10);
     let mut last_update =   time::Instant::now();
     let mut last_key : Option<VirtualKeyCode> = None;  
+    facade.camera.world.center = vec2!(game_state.columns, game_state.rows) * (logic::SIZE /2. );
     event_loop.run(move |ev, _, control_flow| {
         let start_time = time::Instant::now();
         if let event::Event::WindowEvent { event, .. } = ev {
