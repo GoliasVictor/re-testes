@@ -47,10 +47,10 @@ impl Tetramino {
             }
         }
         
-        return Tetramino {
+        Tetramino {
             color: template.color,
-            block_positions: block_positions,
-        };
+            block_positions,
+        }
     }
     /// Get tetramino center relative to its blocks
     fn get_center(&mut self) -> Vec2 { 
@@ -97,13 +97,13 @@ fn to_object(position: Vector2<i16>, color: (i16, i16, i16)) -> Object {
     f_color[0] = color.0 as f32 / 255.0;
     f_color[1] = color.1 as f32 / 255.0;
     f_color[2] = color.2 as f32 / 255.0;
-    return Object {
+    Object {
         format: Rect {
             center: (position.to_vec2() + vec2!(0.5, 0.5))*SIZE,
             size: vec2!(SIZE, SIZE),
         },
         color: f_color,
-    };
+    }
 }
 
 impl Player {
@@ -114,7 +114,7 @@ impl Player {
         }).collect()
     }
     pub fn translate_x(&mut self, delta_x : i16){
-        self.position.x = self.position.x + delta_x;
+        self.position.x += delta_x;
     }
 
 }
@@ -147,10 +147,10 @@ impl GameState {
 
         GameState {
 			time: 0,
-            player: player,
-			rng: rng,
-            columns: columns,
-            rows: rows,
+            player,
+			rng,
+            columns,
+            rows,
             max_time: 1000000,
         }
 	}

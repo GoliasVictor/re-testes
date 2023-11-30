@@ -11,10 +11,10 @@ use crate::vector2::Vec2;
 use super::{transform::{*, self}, Object, Vertex, Rect};
 
 
-// This structure is used to store interface details
-// Display is where to manipulate the screen
-// program is where the shaders are
-// And the camera is for where the screen is viewed
+/// This structure is used to store interface details
+/// Display is where to manipulate the screen
+/// program is where the shaders are
+/// And the camera is for where the screen is viewed
 pub struct Interface {
     pub display: Display,
     pub program: Program,

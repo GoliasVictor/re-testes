@@ -50,27 +50,27 @@ impl Object {
         vec![
             Vertex {
                 position: (center - size / 2.).into(),
-                color: self.color.clone(),
+                color: self.color,
             },
             Vertex {
                 position: (center + vec2!(size.x, -size.y) / 2.).into(),
-                color: self.color.clone(),
+                color: self.color,
             },
             Vertex {
                 position: (center + size / 2.).into(),
-                color: self.color.clone(),
+                color: self.color,
             },
             Vertex {
                 position: (center + size / 2.).into(),
-                color: self.color.clone(),
+                color: self.color,
             },
             Vertex {
                 position: (center + vec2!(-size.x, size.y) / 2.).into(),
-                color: self.color.clone(),
+                color: self.color,
             },
             Vertex {
                 position: (center - size / 2.).into(),
-                color: self.color.clone(),
+                color: self.color,
             },
         ]
     }

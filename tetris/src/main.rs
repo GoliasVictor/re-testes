@@ -1,5 +1,5 @@
 #![feature(trait_alias)]
-
+#![deny(missing_docs)]
 pub mod gui;
 /// Module containing the engine core, vital parts such as vectors
 #[macro_use]
@@ -63,7 +63,7 @@ fn main() {
         }
 
         
-        let delta_t = time::Instant::now().duration_since(last_update).as_micros() as u128;
+        let delta_t = time::Instant::now().duration_since(last_update).as_micros();
         last_update = start_time;
         let mut canvas = facade.draw();
         canvas.target.clear_color(0.0, 0.0, 0.0, 1.0);
