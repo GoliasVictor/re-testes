@@ -8,6 +8,7 @@ pub mod gui;
 #[macro_use]
 pub mod core;
 pub mod logic;
+pub mod audio;
 
 extern crate glium;
 use glium::{
