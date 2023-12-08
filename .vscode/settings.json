@@ -1,0 +1,5 @@
+{
+	"rust-analyzer.linkedProjects": [
+		"./tetris/Cargo.toml"
+	]
+}

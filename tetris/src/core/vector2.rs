@@ -28,11 +28,9 @@ pub trait Field = Sized
 /// # Examples
 ///
 /// ```
-/// # fn main(){
 /// let v = Vector2::new(1.0, 2.0); 
 /// assert_eq!(v.x, 1.0); 
 /// assert_eq!(v.y, 2.0); 
-/// # } 
 ///```
 
 #[derive(Clone, Copy, Debug)]
