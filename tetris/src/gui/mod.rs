@@ -1,3 +1,5 @@
+//! Where access and manipulation to visual interface components is available, such as camera, transformations, window manipulations, etc.
+
 mod transform;
 
 /// Module for accessing the interface, with wrappers for communicating with the interface
