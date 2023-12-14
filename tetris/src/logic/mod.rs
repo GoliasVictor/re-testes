@@ -1,3 +1,5 @@
+use std::vec;
+
 use glium::glutin::event::VirtualKeyCode;
 use rand::{rngs::ThreadRng, Rng};
 use crate::{gui::{ Object, Rect, interface::Canvas}, vector2::{Vector2, Vec2, ToVec2}};
@@ -94,10 +96,18 @@ fn to_object(position: Vector2<i16>, color: (i16, i16, i16)) -> Object {
 
 impl Player {
     fn to_object_buffer(&self) -> Vec<Object> {
-        self.tetramino.block_positions.into_iter().flatten().map(|block| {
-            let pos = self.position.to_vec2() + block;
-            to_object(vec2!(pos.x as i16, pos.y as i16), self.tetramino.color)
+        self.get_blocks().map(|block| {
+            to_object(block, self.tetramino.color)
         }).collect()
+    }
+    /// Returns a vector containing each position of the tetramino blocks relative to the origin
+    fn get_blocks(&self) -> vec::IntoIter<Vector2<i16>> {
+        self.tetramino.block_positions.into_iter().flatten().map(|block|{
+            Vector2 {
+               x: (self.position.x as f32 + block.x).floor() as i16,
+               y: (self.position.y as f32 + block.y).floor() as i16,
+            }        
+        }).collect::<Vec<Vector2<i16>>>().into_iter()
     }
 }
 #[derive(Debug)]
@@ -114,8 +124,9 @@ pub struct GameState {
 impl GameState {
     fn next_player(&mut self) -> Player {
 		let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[self.rng.gen_range(0..7)].clone());
+        
         Player {
-			position: vec2!(((self.columns as f32 / 2.).ceil() as i16) - 2, self.rows -2 ),
+			position: vec2!(((self.columns as f32 / 2.).ceil() as i16) - 2, self.rows - 1 ),
 			tetramino 
 		}
     }
@@ -143,6 +154,7 @@ impl GameState {
     		VirtualKeyCode::Up => {
 			    self.rotate_player();
 		    },
+            VirtualKeyCode::Space => self.move_to_end(),
             VirtualKeyCode::Down => {
                 self.translate_player(vec2!(0_i16, -1));
 		    },
@@ -156,14 +168,24 @@ impl GameState {
                 self.translate_player(vec2!(-1_i16, 0));
 		    },
 			VirtualKeyCode::N => self.player = self.next_player(),
+			VirtualKeyCode::R => self.restart(),
     		_ => (),
 		}
 	}
+    fn move_to_end(&mut self){
+        while self.translate_player(vec2!(0_i16, -1)) {}; 
+        self.add_player_to_stack();   
+    }
+
+    fn restart(&mut self) {
+        self.stack = vec!{};
+        self.player = self.next_player()
+    }
     pub fn is_valid_player_position(&self, pos: Vector2<i16>) -> bool{
         if  0  > pos.x  || pos.x  >= self.columns {
             return false;
         }
-        if 0  > pos.y  || pos.y >= self.rows {
+        if 0  > pos.y {
             return false;
         }
         
@@ -176,14 +198,13 @@ impl GameState {
         
     }   
     pub fn translate_player(&mut self, delta : Vector2<i16>) -> bool {
-        let can_move  =  self.player.tetramino.block_positions.iter().flatten().all(|block|{
-            let new_pos = self.player.position  + delta +  vec2!(block.x as i16, block.y as i16);
-            self.is_valid_player_position(new_pos)
+        let can_move  =  self.player.get_blocks().all(|block|{
+            self.is_valid_player_position(delta + block)
         });
         if can_move {
             self.player.position +=  delta;
         }
-        return can_move;
+        can_move
     }
     fn rotate_player(&mut self) {
         let center = self.player.tetramino.get_center();
@@ -211,14 +232,19 @@ impl GameState {
         
     }
     pub fn add_player_to_stack(&mut self){
-        self.player.tetramino.block_positions.into_iter().flatten().for_each(|b|{
+        if self.player.get_blocks().any(|b| b.y >= self.rows){
+            self.restart();
+            return;
+        }
+        self.player.get_blocks().for_each(|b|{
             let pos = Vector2::<usize> {
-                x: (self.player.position.x  as f32 + b.x.floor()) as usize,
-                y: (self.player.position.y as f32 + b.y.floor()) as usize
+                x: b.x as usize,
+                y: b.y as usize
             };
             while self.stack.len() <= pos.y{
                 self.stack.push(vec![None; self.columns as usize]);
             }
+
             self.stack[pos.y][pos.x] = Some(Block {
                 color: self.player.tetramino.color
             })
@@ -234,8 +260,6 @@ impl GameState {
         }
     }
     pub fn update(&mut self, canvas: &mut Canvas, delta_t : u128) {
-
-
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut obj = to_object(vec2!(i,j), (64,64,64));
@@ -245,33 +269,19 @@ impl GameState {
         }
 
         canvas.draw_buffer(self.player.to_object_buffer().into_iter());
+
         let buffer = self.stack.iter().enumerate().flat_map(|(i,row)|{
             row.iter().enumerate().flat_map(move |(j,op)| {
                 op.as_ref().map(|b| to_object(vec2!(j as i16, i as i16), b.color))
             })
         });
         canvas.draw_buffer(buffer);
-        canvas.draw_obj(&Object{
-            color: [1.,1.,1.],
-            format: Rect {
-                center: self.player.position.to_vec2() * SIZE,
-                size: vec2!(1., 1.)
-            }
-        });
-
-        canvas.draw_obj(&Object{
-            color: [1.,1.,1.],
-            format: Rect {
-                center: self.player.position.to_vec2() * SIZE + self.player.tetramino.get_center() * SIZE,
-                size: vec2!(1., 1.)
-            }
-        });
 
 		self.time += delta_t;
 		if self.time >= self.max_time {
             if !self.translate_player(vec2!(0_i16, -1)) {
                 self.add_player_to_stack();   
-            }
+            } 
             self.time -= self.max_time;
 		}  
     }
