@@ -172,15 +172,29 @@ impl GameState {
     		_ => (),
 		}
 	}
+
+    /// Move the player to the end of the stack and put he in
+    /// Moves the player to the position where he fits, 
+    /// going down until he finds a block or the floor 
+    /// and then puts him in the final position
     fn move_to_end(&mut self){
         while self.translate_player(vec2!(0_i16, -1)) {}; 
         self.add_player_to_stack();   
     }
 
+    /// Restart the game
+    /// 
+    /// Clears the stack and generates a new player
     fn restart(&mut self) {
         self.stack = vec!{};
         self.player = self.next_player()
     }
+
+    /// Checks whether a player block can be in the received position
+    /// 
+    /// returns false if it is outside the sides, 
+    /// or lower than it should be, 
+    /// or in a stack block position otherise returns true
     pub fn is_valid_player_position(&self, pos: Vector2<i16>) -> bool{
         if  0  > pos.x  || pos.x  >= self.columns {
             return false;
@@ -197,6 +211,13 @@ impl GameState {
         true 
         
     }   
+
+    /// Move the posistion of the basead on delta if the new pos is valid
+    /// 
+    /// It receives a difference (delta), 
+    /// if each block in relation to the new position is in a valid position, 
+    /// the position is replaced otherwise, nothing is done
+    /// returns whether it was moved or not
     pub fn translate_player(&mut self, delta : Vector2<i16>) -> bool {
         let can_move  =  self.player.get_blocks().all(|block|{
             self.is_valid_player_position(delta + block)
@@ -206,6 +227,10 @@ impl GameState {
         }
         can_move
     }
+
+    /// Rotates the player's tetramino blocks if is possible
+    /// Generates new tetramino positions, rotating 90 degrees relative to the center
+    /// if the new positions are invalid, do nothing, otherwise the position will be the rotated position
     fn rotate_player(&mut self) {
         let center = self.player.tetramino.get_center();
         let new_blocks =    self.player.tetramino.block_positions.map(|op| op.map(|block| {
@@ -231,24 +256,26 @@ impl GameState {
         }
         
     }
+    /// Method to add the player to the block stack
+    /// 
+    /// checks if the player fits in the grid, if not, restarts the game, 
+    /// and then adds each player's block to the stack and generates a new one adds a new player, 
+    /// and removes the lines where it is filled
     pub fn add_player_to_stack(&mut self){
-        if self.player.get_blocks().any(|b| b.y >= self.rows){
+        let max_height = self.player.get_blocks().map(|b|b.y).max().unwrap();
+        if max_height >= self.rows {
             self.restart();
             return;
         }
-        self.player.get_blocks().for_each(|b|{
-            let pos = Vector2::<usize> {
-                x: b.x as usize,
-                y: b.y as usize
-            };
-            while self.stack.len() <= pos.y{
-                self.stack.push(vec![None; self.columns as usize]);
-            }
 
-            self.stack[pos.y][pos.x] = Some(Block {
+        while self.stack.len() <=  max_height as usize {
+            self.stack.push(vec![None; self.columns as usize]);
+        }
+        for block in self.player.get_blocks(){
+            self.stack[block.y as usize][block.x as usize] = Some(Block {
                 color: self.player.tetramino.color
             })
-        });
+        };
         self.player = self.next_player();
         let mut i = 0;
         while i < self.stack.len() {
