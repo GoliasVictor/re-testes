@@ -1,3 +1,5 @@
+use std::vec;
+
 use glium::glutin::event::VirtualKeyCode;
 use rand::{rngs::ThreadRng, Rng};
 use crate::{gui::{ Object, Rect, interface::Canvas}, vector2::{Vector2, Vec2, ToVec2}};
@@ -20,6 +22,10 @@ const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
     TetraminoTemplate{blocks: 0b01101100, color: (46, 204, 113)} // S
 ];
 
+#[derive(Debug, Clone)]
+struct Block {
+  color: (i16, i16, i16)
+}
 
 #[derive(Clone,Debug)]
 pub struct Tetramino {
@@ -65,25 +71,7 @@ impl Tetramino {
         center
     }
 
-    fn rotate(&mut self) {
-        let center = self.get_center();
-        for i in 0..4 {
-            if let Some(block) = self.block_positions[i] {
-                let relative_position = center - block;
-            
-                let mut x_multiplier = 1.;
-                let mut y_multiplier = 1.;
-
-                if relative_position.x <= 0.0 { y_multiplier = -1. }
-                if relative_position.y >= 0.0 { x_multiplier = -1. }
-
-                let mut position = Vec2::ZERO;
-                position.x = center.x + (relative_position.y.abs() * x_multiplier as f32);
-                position.y = center.y + (relative_position.x.abs() * y_multiplier as f32);
-                self.block_positions[i] = Some(position);
-            }
-        }
-    }
+ 
 }
 
 #[derive(Debug)]
@@ -108,15 +96,19 @@ fn to_object(position: Vector2<i16>, color: (i16, i16, i16)) -> Object {
 
 impl Player {
     fn to_object_buffer(&self) -> Vec<Object> {
-        self.tetramino.block_positions.into_iter().flatten().map(|block| {
-            let pos = self.position.to_vec2() + block;
-            to_object(vec2!(pos.x as i16, pos.y as i16), self.tetramino.color)
+        self.get_blocks().map(|block| {
+            to_object(block, self.tetramino.color)
         }).collect()
     }
-    pub fn translate_x(&mut self, delta_x : i16){
-        self.position.x = self.position.x + delta_x;
+    /// Returns a vector containing each position of the tetramino blocks relative to the origin
+    fn get_blocks(&self) -> vec::IntoIter<Vector2<i16>> {
+        self.tetramino.block_positions.into_iter().flatten().map(|block|{
+            Vector2 {
+               x: (self.position.x as f32 + block.x).floor() as i16,
+               y: (self.position.y as f32 + block.y).floor() as i16,
+            }        
+        }).collect::<Vec<Vector2<i16>>>().into_iter()
     }
-
 }
 #[derive(Debug)]
 pub struct GameState {
@@ -126,13 +118,15 @@ pub struct GameState {
     pub rows: i16,
 	time: u128,
     max_time: u128,
+    stack: Vec<Vec<Option<Block>>>
 }
 
 impl GameState {
     fn next_player(&mut self) -> Player {
 		let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[self.rng.gen_range(0..7)].clone());
+        
         Player {
-			position: vec2!(((self.columns as f32 / 2.).ceil() as i16) - 2, self.rows -2 ),
+			position: vec2!(((self.columns as f32 / 2.).ceil() as i16) - 2, self.rows - 1 ),
 			tetramino 
 		}
     }
@@ -152,60 +146,159 @@ impl GameState {
             columns: columns,
             rows: rows,
             max_time: 1000000,
+            stack: vec!{}
         }
 	}
 	pub fn key_down(&mut self, key : VirtualKeyCode) {
 		match key {
     		VirtualKeyCode::Up => {
-			    self.player.tetramino.rotate();
+			    self.rotate_player();
+		    },
+            VirtualKeyCode::Space => self.move_to_end(),
+            VirtualKeyCode::Down => {
+                self.translate_player(vec2!(0_i16, -1));
 		    },
     		VirtualKeyCode::W => {
 				self.player.position.y += 1;
 		    },
             VirtualKeyCode::Right => {
-                self.player.translate_x(1);
+                self.translate_player(vec2!(1_i16, 0));
 		    },
             VirtualKeyCode::Left => {
-                self.player.translate_x(-1);
+                self.translate_player(vec2!(-1_i16, 0));
 		    },
-			VirtualKeyCode::N => self.player = self.next_player(),
+			VirtualKeyCode::R => self.restart(),
     		_ => (),
 		}
 	}
+
+    /// Move the player to the end of the stack and put he in
+    /// Moves the player to the position where he fits, 
+    /// going down until he finds a block or the floor 
+    /// and then puts him in the final position
+    fn move_to_end(&mut self){
+        while self.translate_player(vec2!(0_i16, -1)) {}; 
+        self.add_player_to_stack();   
+    }
+
+    /// Restart the game
+    /// 
+    /// Clears the stack and generates a new player
+    fn restart(&mut self) {
+        self.stack = vec!{};
+        self.player = self.next_player()
+    }
+
+    /// Checks whether a player block can be in the received position
+    /// 
+    /// returns false if it is outside the sides, 
+    /// or lower than it should be, 
+    /// or in a stack block position otherise returns true
+    pub fn is_valid_player_position(&self, pos: Vector2<i16>) -> bool{
+        if  0  > pos.x  || pos.x  >= self.columns {
+            return false;
+        }
+        if 0  > pos.y {
+            return false;
+        }
+        
+        if let Some(row) = self.stack.get(pos.y as usize) {
+            if row[pos.x as usize].is_some(){
+                return false
+            }
+        } 
+        true 
+        
+    }   
+
+    /// Move the posistion of the basead on delta if the new pos is valid
+    /// 
+    /// It receives a difference (delta), 
+    /// if each block in relation to the new position is in a valid position, 
+    /// the position is replaced otherwise, nothing is done
+    /// returns whether it was moved or not
+    pub fn translate_player(&mut self, delta : Vector2<i16>) -> bool {
+        let can_move  =  self.player.get_blocks().all(|block|{
+            self.is_valid_player_position(delta + block)
+        });
+        if can_move {
+            self.player.position +=  delta;
+        }
+        can_move
+    }
+
+    /// Rotates the player's tetramino blocks if is possible
+    /// Generates new tetramino positions, rotating 90 degrees relative to the center
+    /// if the new positions are invalid, do nothing, otherwise the position will be the rotated position
+    fn rotate_player(&mut self) {
+        let center = self.player.tetramino.get_center();
+        let new_blocks =    self.player.tetramino.block_positions.map(|op| op.map(|block| {
+            let relative_position = center - block;        
+            center + vec2!(relative_position.y, -relative_position.x)
+        }));
+        let can_rotate = |b : Vec2| {
+            let pos =  self.player.position + vec2!(b.x.floor() as i16, b.y.floor() as i16);
+            self.is_valid_player_position(pos)
+        };
+        if new_blocks.into_iter().flatten().all(can_rotate) {
+            self.player.tetramino.block_positions =  new_blocks;
+        }
+        
+    }
+    /// Method to add the player to the block stack
+    /// 
+    /// checks if the player fits in the grid, if not, restarts the game, 
+    /// and then adds each player's block to the stack and generates a new one adds a new player, 
+    /// and removes the lines where it is filled
+    pub fn add_player_to_stack(&mut self){
+        let max_height = self.player.get_blocks().map(|b|b.y).max().unwrap();
+        if max_height >= self.rows {
+            self.restart();
+            return;
+        }
+
+        while self.stack.len() <=  max_height as usize {
+            self.stack.push(vec![None; self.columns as usize]);
+        }
+        for block in self.player.get_blocks(){
+            self.stack[block.y as usize][block.x as usize] = Some(Block {
+                color: self.player.tetramino.color
+            })
+        };
+        self.player = self.next_player();
+        let mut i = 0;
+        while i < self.stack.len() {
+            if self.stack[i].iter().all(Option::is_some) {
+                self.stack.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
     pub fn update(&mut self, canvas: &mut Canvas, delta_t : u128) {
-
-
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut obj = to_object(vec2!(i,j), (64,64,64));
-                obj.format.size =   obj.format.size * 0.9;
+                obj.format.size =  obj.format.size  * 0.9;
                 canvas.draw_obj(&obj);
             }
         }
 
         canvas.draw_buffer(self.player.to_object_buffer().into_iter());
-        canvas.draw_obj(&Object{
-            color: [1.,1.,1.],
-            format: Rect {
-                center: self.player.position.to_vec2() * SIZE,
-                size: vec2!(1., 1.)
-            }
+
+        let buffer = self.stack.iter().enumerate().flat_map(|(i,row)|{
+            row.iter().enumerate().flat_map(move |(j,op)| {
+                op.as_ref().map(|b| to_object(vec2!(j as i16, i as i16), b.color))
+            })
         });
-        
-        canvas.draw_obj(&Object{
-            color: [1.,1.,1.],
-            format: Rect {
-                center: self.player.position.to_vec2() * SIZE + self.player.tetramino.get_center() * SIZE,
-                size: vec2!(1., 1.)
-            }
-        });
+        canvas.draw_buffer(buffer);
 
 		self.time += delta_t;
 		if self.time >= self.max_time {
-			if self.player.position.y > 0 {
-				self.player.position.y -= 1;
-			}
-			self.time -= self.max_time;
+            if !self.translate_player(vec2!(0_i16, -1)) {
+                self.add_player_to_stack();   
+            } 
+            self.time -= self.max_time;
 		}  
     }
 }
