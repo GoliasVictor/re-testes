@@ -167,7 +167,6 @@ impl GameState {
             VirtualKeyCode::Left => {
                 self.translate_player(vec2!(-1_i16, 0));
 		    },
-			VirtualKeyCode::N => self.player = self.next_player(),
 			VirtualKeyCode::R => self.restart(),
     		_ => (),
 		}
@@ -234,18 +233,8 @@ impl GameState {
     fn rotate_player(&mut self) {
         let center = self.player.tetramino.get_center();
         let new_blocks =    self.player.tetramino.block_positions.map(|op| op.map(|block| {
-            let relative_position = center - block;
-        
-            let mut x_multiplier = 1.;
-            let mut y_multiplier = 1.;
-
-            if relative_position.x <= 0.0 { y_multiplier = -1. }
-            if relative_position.y >= 0.0 { x_multiplier = -1. }
-
-            Vec2 {
-                x: center.x + (relative_position.y.abs() * x_multiplier as f32),
-                y: center.y + (relative_position.x.abs() * y_multiplier as f32)
-            }
+            let relative_position = center - block;        
+            center + vec2!(relative_position.y, -relative_position.x)
         }));
         let can_rotate = |b : Vec2| {
             let pos =  self.player.position + vec2!(b.x.floor() as i16, b.y.floor() as i16);
