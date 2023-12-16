@@ -17,8 +17,7 @@ pub trait Field = Sized
     + Add<Output = Self>
     + Mul<Output = Self>
     + Div<Output = Self>
-    + Sub<Output = Self>
-    + Neg<Output = Self>;
+    + Sub<Output = Self>;
 
  /// A 2D vector struct.
 ///
@@ -170,7 +169,7 @@ impl<T: Field> SubAssign for Vector2<T> {
     }
 }
 
-impl<T: Field> Neg for Vector2<T> {
+impl<T: Field + Neg<Output = T>> Neg for Vector2<T> {
     type Output = Self;
     fn neg(self) -> Self::Output {
         Vector2::<T> {
