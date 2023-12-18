@@ -27,11 +27,9 @@ pub trait Field = Sized
 /// # Examples
 ///
 /// ```
-/// # fn main(){
 /// let v = Vector2::new(1.0, 2.0); 
 /// assert_eq!(v.x, 1.0); 
 /// assert_eq!(v.y, 2.0); 
-/// # } 
 ///```
 
 #[derive(Clone, Copy, Debug)]
@@ -62,9 +60,11 @@ impl<T: Field> Vector2<T>{
     }
 }
 
+/// This trait [ToVec2] is implemented for different types that can be converted to a `Vector2`.
 pub trait ToVec2<T : Field> {
-    fn to_vec2(&self) -> Vector2<T>;    
-}
+    /// Converts to a [Vector2].
+    fn to_vec2(&self) -> Vector2<T>;   
+ }
 
 impl<T : Field , K : Field + Into<T>> ToVec2<T> for Vector2<K> {
     fn to_vec2(&self) -> Vector2<T> {
@@ -122,7 +122,7 @@ impl Vec2 {
 #[macro_export]
 macro_rules! vec2 {
     ($x:expr, $y:expr) => {
-        crate::vector2::Vector2::new($x, $y)
+        $crate::vector2::Vector2::new($x, $y)
     };
 }
 
