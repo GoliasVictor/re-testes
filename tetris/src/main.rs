@@ -3,6 +3,7 @@
 //! are designed to be part of the logic as if they were an engine but embedded
 #![feature(trait_alias)]
 #![deny(missing_docs)]
+use std::convert::Infallible;
 pub mod gui;
 /// Module containing the engine core, vital parts such as vectors
 #[macro_use]
@@ -11,16 +12,19 @@ pub mod logic;
 pub mod audio;
 
 extern crate glium;
+use audio::sound::SoundFacadeError;
 use glium::{
     glutin::{event, event::{KeyboardInput, ElementState, VirtualKeyCode}, event_loop},
     Surface,
 };
-use std::time;
+use std::{time, path::PathBuf};
 
 pub use crate::core::vector2;
-use crate::{gui::interface, logic::GameState};
+use crate::{gui::interface, logic::GameState, audio::sound::SoundFacade};
 
-fn main() {
+fn main()  -> Result< Infallible, SoundFacadeError>{
+    let sound_facade = SoundFacade::try_default()?;
+    sound_facade.play_sound(PathBuf::from("./assets/404151__matrixxx__select-granted-01.wav"))?;
     const TARGET_FPS: u64 = 120;
     let event_loop = event_loop::EventLoop::new();
     let mut facade = interface::Interface::create(&event_loop);
@@ -84,5 +88,5 @@ fn main() {
         };
         let new_inst = start_time + time::Duration::from_millis(wait_millis);
         *control_flow = event_loop::ControlFlow::WaitUntil(new_inst);
-    });
+    })
 }
