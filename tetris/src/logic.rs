@@ -1,12 +1,13 @@
 //! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
-use std::vec;
+use std::{vec, rc::Rc};
 
 use crate::{
-    gui::{interface::Canvas, Object, Rect},
-    vector2::{ToVec2, Vec2, Vector2},
+    gui::{interface::{Canvas, Interface}, Rect, ObjectWrapper, systems::{SolidColorObject, ImageObject}},
+    vector2::{ToVec2, Vec2, Vector2}, include_png,
 };
 use glium::glutin::event::VirtualKeyCode;
 use rand::{rngs::ThreadRng, Rng};
+use glium::texture::SrgbTexture2d;
 
 #[derive(Clone, Debug)]
 /// Template to create a new tetramino
@@ -112,23 +113,24 @@ pub struct Player {
 pub const SIZE: f32 = 5.;
 
 /// Get a object in the map based on the position in the grid and the color  
-fn to_object(position: Vector2<i16>, color: (i16, i16, i16)) -> Object {
+fn to_object(position: Vector2<i16>, color: (i16, i16, i16)) -> ObjectWrapper {
     let mut f_color: [f32; 3] = [0.0; 3];
     f_color[0] = color.0 as f32 / 255.0;
     f_color[1] = color.1 as f32 / 255.0;
     f_color[2] = color.2 as f32 / 255.0;
-    Object {
-        format: Rect {
-            center: (position.to_vec2() + vec2!(0.5, 0.5)) * SIZE,
-            size: vec2!(SIZE, SIZE),
-        },
-        color: f_color,
-    }
+    ObjectWrapper::SolidColorObject(SolidColorObject {
+            format: Rect {
+                center: (position.to_vec2() + vec2!(0.5, 0.5)) * SIZE,
+                size: vec2!(SIZE, SIZE),
+            },
+            color: f_color,
+        }
+    )
 }
 
 impl Player {
     /// Get a vector of objecto of  each block of the tetramino 
-    fn to_object_buffer(&self) -> Vec<Object> {
+    fn to_object_buffer(&self) -> Vec<ObjectWrapper> {
         self.get_blocks()
             .map(|block| to_object(block, self.tetramino.color))
             .collect()
@@ -164,6 +166,7 @@ pub struct GameState {
     max_time: u128,
     /// Vector of lines of blocks on the grid
     stack: Vec<Vec<Option<Block>>>,
+    texture: Rc<SrgbTexture2d>
 }
 
 impl GameState {
@@ -181,7 +184,7 @@ impl GameState {
     }
 
     /// Create the game state 
-    pub fn new(columns: i16, rows: i16) -> GameState {
+    pub fn new(columns: i16, rows: i16, interface: &Interface) -> GameState {
         let mut rng = rand::thread_rng();
 
         let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[rng.gen_range(0..7)].clone());
@@ -198,6 +201,7 @@ impl GameState {
             rows,
             max_time: 1000000,
             stack: vec![],
+            texture:  interface.create_texture(include_png!("./assets/brick.png"))
         }
     }
     /// Receives the keypress event
@@ -332,9 +336,13 @@ impl GameState {
     pub fn update(&mut self, canvas: &mut Canvas, delta_t: u128) {
         for i in 0..self.columns {
             for j in 0..self.rows {
-                let mut obj = to_object(vec2!(i, j), (64, 64, 64));
-                obj.format.size = obj.format.size * 0.9;
-                canvas.draw_obj(&obj);
+                let mut wrap = to_object(vec2!(i, j), (64, 64, 64));
+                if let ObjectWrapper::SolidColorObject(object)  = &mut wrap {
+                    object.format.size = object.format.size * 0.9;
+                 
+                }
+                
+                canvas.draw_obj(&wrap);
             }
         }
 
@@ -345,7 +353,15 @@ impl GameState {
                 op.as_ref()
                     .map(|b| to_object(vec2!(j as i16, i as i16), b.color))
             })
-        });
+        }).map(|wrap| if let ObjectWrapper::SolidColorObject(object)  = wrap {
+            ObjectWrapper::ImageObject(ImageObject{
+                region: object.format,
+                texture: self.texture.clone()
+            })
+            } else {
+                wrap
+            } 
+           );
         canvas.draw_buffer(buffer);
 
         self.time += delta_t;

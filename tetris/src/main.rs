@@ -23,7 +23,7 @@ fn main() {
     const TARGET_FPS: u64 = 120;
     let event_loop = event_loop::EventLoop::new();
     let mut facade = interface::Interface::create(&event_loop);
-    let mut game_state = GameState::new(10, 20);
+    let mut game_state = GameState::new(10, 20,&facade);
     let mut last_update =   time::Instant::now();
     let mut last_key : Option<VirtualKeyCode> = None;  
     facade.camera.world.center = vec2!(game_state.columns, game_state.rows) * (logic::SIZE /2. );
