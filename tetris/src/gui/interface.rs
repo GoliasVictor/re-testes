@@ -1,22 +1,26 @@
+//! Module for accessing the interface, with wrappers for communicating with the interface
+use std::rc::Rc;
+
 use glium::{
     glutin::{self, event_loop, window},
-    uniform, Display, Frame, Program, Surface,
+    texture::Texture2dDataSource,
+    Display, Frame,
 };
 
 use crate::vec2;
 use crate::vector2::Vec2;
 
 use super::{
+    systems::color_system::ColorSystem,
+    systems::image_system::ImageSystem,
     transform::{self, *},
-    Object, Rect, Vertex,
+    ObjectWrapper, Rect,
 };
 
-/// `Interface` struct is used to encapsulate the display, program, and camera.
+/// `Interface` struct is used to encapsulate the display, and camera.
 pub struct Interface {
     /// The `display` represents the display window.
     pub display: Display,
-    /// The `program` represents the shader program.
-    pub program: Program,
     /// The `camera` represents the camera view.
     pub camera: Camera,
 }
@@ -57,14 +61,6 @@ impl Interface {
     /// ```
     pub fn create(event_loop: &event_loop::EventLoop<()>) -> Interface {
         let display = Self::create_display(event_loop);
-
-        let program = {
-            let vertex_shader_src: &str = include_str!("shader.vert");
-            let fragment_shader_src = include_str!("shader.frag");
-            glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None)
-                .unwrap()
-        };
-
         let dims = display.get_framebuffer_dimensions();
         let camera = Camera {
             world: Rect {
@@ -80,11 +76,7 @@ impl Interface {
             },
         };
 
-        Interface {
-            camera,
-            display,
-            program,
-        }
+        Interface { camera, display }
     }
 
     /// Draws the interface.
@@ -99,10 +91,21 @@ impl Interface {
     /// let canvas = interface.draw();
     /// ```
     pub fn draw(&self) -> Canvas {
+        let color_system = ColorSystem::new(&self.display);
+        let image_system = ImageSystem::new(&self.display);
         Canvas {
             target: self.display.draw(),
             interface: self,
+            color_system,
+            image_system,
         }
+    }
+    /// Extract the data from datasource and wrap in a [Rc]
+    pub fn create_texture<'a, T>(&self, source: T) -> Rc<glium::texture::SrgbTexture2d>
+    where
+        T: Texture2dDataSource<'a>,
+    {
+        Rc::new(glium::texture::SrgbTexture2d::new(&self.display, source).unwrap())
     }
 }
 
@@ -112,6 +115,8 @@ pub struct Canvas<'a> {
     pub target: Frame,
     /// Represents the interface where the objects will be drawn.
     pub interface: &'a Interface,
+    color_system: ColorSystem,
+    image_system: ImageSystem,
 }
 
 impl<'a> Canvas<'a> {
@@ -130,22 +135,24 @@ impl<'a> Canvas<'a> {
     /// canvas.draw_obj(&object);
     /// ```
 
-    pub fn draw_obj(&mut self, obj: &Object) {
-        let camera: transform::Transform = self.interface.camera.get_transformation(Vec2::ZERO);
-        let uniforms = uniform! {
-            matrix: camera.0,
-        };
+    pub fn draw_obj(&mut self, object: &ObjectWrapper) {
+        let camera_transform: transform::Transform =
+            self.interface.camera.get_transformation(Vec2::ZERO);
 
-        self.target
-            .draw(
-                &glium::VertexBuffer::new(&self.interface.display, &obj.to_vertex_buffer())
-                    .unwrap(),
-                glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
-                &self.interface.program,
-                &uniforms,
-                &Default::default(),
-            )
-            .unwrap();
+        match object {
+            ObjectWrapper::SolidColorObject(object) => self.color_system.draw(
+                &mut self.target,
+                &self.interface.display,
+                camera_transform,
+                object,
+            ),
+            ObjectWrapper::ImageObject(object) => self.image_system.draw(
+                &mut self.target,
+                &self.interface.display,
+                camera_transform,
+                object,
+            ),
+        }
     }
 
     /// Draws a buffer of objects on the canvas.
@@ -163,24 +170,9 @@ impl<'a> Canvas<'a> {
     /// canvas.draw_buffer(objects.into_iter());
     /// ```
 
-    pub fn draw_buffer<T: Iterator<Item = Object>>(&mut self, buffer: T) {
-        let vertex_buffer = buffer
-            .flat_map(|o| o.to_vertex_buffer())
-            .collect::<Vec<Vertex>>();
-
-        let camera: transform::Transform = self.interface.camera.get_transformation(Vec2::ZERO);
-        let uniforms = uniform! {
-            matrix: camera.0,
-        };
-
-        self.target
-            .draw(
-                &glium::VertexBuffer::new(&self.interface.display, &vertex_buffer).unwrap(),
-                glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
-                &self.interface.program,
-                &uniforms,
-                &Default::default(),
-            )
-            .unwrap();
+    pub fn draw_buffer<T: Iterator<Item = ObjectWrapper>>(&mut self, buffer: T) {
+        for object in buffer {
+            self.draw_obj(&object);
+        }
     }
 }
