@@ -1,4 +1,4 @@
-use crate::vector2::Vec2;
+use crate::{vector2::Vec2, vec2};
 use std::ops::Deref;
 use super::Rect;
 
@@ -161,5 +161,13 @@ impl Camera {
             .translate(pos)
             .scale(scale)
             .translate(self.target.center)
+    }
+
+    pub fn world_showed(&self) -> Rect {
+        
+        Rect {
+            center: self.world.center,
+            size: vec2!(self.world.size.x / self.target.size.x, self.world.size.y) * 2.
+        }
     }
 }

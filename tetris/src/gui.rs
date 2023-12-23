@@ -9,7 +9,7 @@ pub use transform::*;
 /// Import the vec2 and vector2::Vec2 modules.
 use crate::vector2::Vec2;
 
-use self::systems::{ImageObject, SolidColorObject};
+use self::systems::{ImageObject, SolidColorObject, TextObject};
 
 /// Load the bytes in compilation time, and in runtime convert to rgba
 #[macro_export]
@@ -132,4 +132,5 @@ pub enum ObjectWrapper {
     SolidColorObject(SolidColorObject),
     /// Wrapper for a objec of a image
     ImageObject(ImageObject),
+    TextObject(TextObject)
 }

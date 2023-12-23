@@ -11,7 +11,7 @@ use crate::vec2;
 use crate::vector2::Vec2;
 
 use super::{
-    systems::color_system::ColorSystem,
+    systems::{color_system::ColorSystem, TextSystem},
     systems::image_system::ImageSystem,
     transform::{self, *},
     ObjectWrapper, Rect,
@@ -93,11 +93,13 @@ impl Interface {
     pub fn draw(&self) -> Canvas {
         let color_system = ColorSystem::new(&self.display);
         let image_system = ImageSystem::new(&self.display);
+        let text_system = TextSystem::new(&self.display).unwrap();
         Canvas {
             target: self.display.draw(),
             interface: self,
             color_system,
             image_system,
+            text_system
         }
     }
     /// Extract the data from datasource and wrap in a [Rc]
@@ -107,6 +109,7 @@ impl Interface {
     {
         Rc::new(glium::texture::SrgbTexture2d::new(&self.display, source).unwrap())
     }
+
 }
 
 /// `Canvas` struct is used for drawing objects on the `Interface`.
@@ -117,6 +120,7 @@ pub struct Canvas<'a> {
     pub interface: &'a Interface,
     color_system: ColorSystem,
     image_system: ImageSystem,
+    text_system: TextSystem<'a>,
 }
 
 impl<'a> Canvas<'a> {
@@ -152,6 +156,8 @@ impl<'a> Canvas<'a> {
                 camera_transform,
                 object,
             ),
+            ObjectWrapper::TextObject(object) =>
+                self.text_system.draw(&mut self.target, &self.interface.display, camera_transform, object)
         }
     }
 

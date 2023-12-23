@@ -4,5 +4,7 @@
 
 pub mod color_system;
 pub mod image_system;
+pub mod text_system;
 pub use color_system::*;
 pub use image_system::*;
+pub use text_system::*;
