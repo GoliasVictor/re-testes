@@ -1,4 +1,4 @@
-use crate::vector2::Vec2;
+use crate::{vector2::Vec2, vec2};
 use std::ops::Deref;
 use super::Rect;
 
