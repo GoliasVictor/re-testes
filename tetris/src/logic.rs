@@ -18,7 +18,7 @@ use rand::{rngs::ThreadRng, Rng};
 
 #[derive(Clone, Debug)]
 /// Template to create a new tetramino
-struct TetraminoTemplate {
+pub struct TetraminoTemplate {
     /// Binary number for the blocks, first four represent top row, last four represent bottom
     blocks: i16,
     /// The color of the tetramino
@@ -63,17 +63,31 @@ pub struct Bag {
 }
 
 impl Bag {
-    /// Create Bag struct without shuffling
+    /// Create unshuffled Bag
     pub fn new() -> Self {
-        Self {
+        let mut bag = Self {
             list: TETRAMINO_TEMPLATES.to_vec(),
-        }
+        };
+        bag.populate();
+        bag
     }
 
-    /// Shuffle current Bag
-    pub fn shuffle(&mut self) -> () {
+    /// Populate bag
+    pub fn populate(&mut self) -> () {
         let mut rng = thread_rng();
+        self.list = TETRAMINO_TEMPLATES.to_vec();
         self.list.shuffle(&mut rng);
+    }
+
+    /// Pop piece from bag
+    pub fn pop(&mut self) -> TetraminoTemplate {
+        match self.list.pop() {
+            Some(val) => val,
+            None => {
+                self.populate();
+                self.list.pop().unwrap()
+            }
+        }
     }
 }
 
