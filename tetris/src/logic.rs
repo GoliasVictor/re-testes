@@ -58,6 +58,7 @@ const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
 ];
 
 /// Bag in which all seven tetraminoes are located and then suffled
+#[derive(Debug)]
 pub struct Bag {
     list: Vec<TetraminoTemplate>,
 }
@@ -207,12 +208,14 @@ pub struct GameState {
     /// Vector of lines of blocks on the grid
     stack: Vec<Vec<Option<Block>>>,
     texture: Rc<SrgbTexture2d>,
+    /// Bag which contains tetraminoes
+    bag: Bag,
 }
 
 impl GameState {
     /// Generate the next player of the game
     fn next_player(&mut self) -> Player {
-        let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[self.rng.gen_range(0..7)].clone());
+        let tetramino = Tetramino::new(self.bag.pop());
 
         Player {
             position: vec2!(
@@ -242,6 +245,7 @@ impl GameState {
             max_time: 1000000,
             stack: vec![],
             texture: interface.create_texture(include_png!("./assets/brick.png")),
+            bag: Bag::new(),
         }
     }
     /// Receives the keypress event
