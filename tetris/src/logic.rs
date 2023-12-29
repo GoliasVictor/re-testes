@@ -1,4 +1,5 @@
 //! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
+mod bag;
 use std::{vec, rc::Rc};
 
 use crate::{
@@ -9,6 +10,8 @@ use glium::glutin::event::VirtualKeyCode;
 use rand::{rngs::ThreadRng, Rng};
 use glium::texture::SrgbTexture2d;
 
+use self::bag::Bag;
+
 #[derive(Clone, Debug)]
 /// Template to create a new tetramino
 struct TetraminoTemplate {
@@ -17,38 +20,6 @@ struct TetraminoTemplate {
     /// The color of the tetramino
     color: (i16, i16, i16),
 }
-
-/// List of the default tretraminos
-const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
-    TetraminoTemplate {
-        blocks: 0b11001100,
-        color: (241, 196, 15),
-    }, // Square
-    TetraminoTemplate {
-        blocks: 0b11100100,
-        color: (142, 68, 173),
-    }, // T
-    TetraminoTemplate {
-        blocks: 0b00101110,
-        color: (230, 126, 34),
-    }, // L
-    TetraminoTemplate {
-        blocks: 0b10001110,
-        color: (41, 128, 185),
-    }, // Reverse L
-    TetraminoTemplate {
-        blocks: 0b11110000,
-        color: (93, 173, 226),
-    }, // Straight
-    TetraminoTemplate {
-        blocks: 0b11000110,
-        color: (231, 76, 60),
-    }, // Z
-    TetraminoTemplate {
-        blocks: 0b01101100,
-        color: (46, 204, 113),
-    }, // S
-];
 
 /// Representation of a block of a tetramino in the stack
 #[derive(Debug, Clone)]
@@ -154,8 +125,6 @@ impl Player {
 pub struct GameState {
     /// Actual player in the game  
     player: Player,
-    /// The random number generator  
-    rng: ThreadRng,
     /// Number of columns in the grid
     pub columns: i16,
     /// Number of rows in the grid 
@@ -166,28 +135,27 @@ pub struct GameState {
     max_time: u128,
     /// Vector of lines of blocks on the grid
     stack: Vec<Vec<Option<Block>>>,
-    texture: Rc<SrgbTexture2d>
+    texture: Rc<SrgbTexture2d>,
+    /// Bag which contains tetraminoes
+    bag: Bag,
 }
 
 impl GameState {
     /// Generate the next player of the game
     fn next_player(&mut self) -> Player {
-        let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[self.rng.gen_range(0..7)].clone());
-
         Player {
             position: vec2!(
                 ((self.columns as f32 / 2.).ceil() as i16) - 2,
                 self.rows - 1
             ),
-            tetramino,
+            tetramino: self.bag.pop(),
         }
     }
 
     /// Create the game state 
     pub fn new(columns: i16, rows: i16, interface: &Interface) -> GameState {
-        let mut rng = rand::thread_rng();
-
-        let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[rng.gen_range(0..7)].clone());
+        let mut bag= Bag::new();
+        let tetramino = bag.pop();
         let player = Player {
             position: vec2!((columns as f32 / 2.).ceil() as i16 - 2, rows - 2),
             tetramino,
@@ -196,12 +164,12 @@ impl GameState {
         GameState {
             time: 0,
             player,
-            rng,
             columns,
             rows,
             max_time: 1000000,
             stack: vec![],
-            texture:  interface.create_texture(include_png!("./assets/brick.png"))
+            texture:  interface.create_texture(include_png!("./assets/brick.png")),
+            bag
         }
     }
     /// Receives the keypress event
