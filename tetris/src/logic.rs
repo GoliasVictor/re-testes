@@ -1,3 +1,5 @@
+//! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
+
 mod level_scene;
 mod home_scene;
 use glium::glutin::event::VirtualKeyCode;
@@ -12,6 +14,7 @@ enum Scenes {
 
 /// The size of a tetramino in the map 
 pub const SIZE: f32 = 1.;
+/// The state of all game logic
 pub struct GameState {
     actual_scene: Scenes,
     level_scene : LevelScene,
@@ -19,6 +22,7 @@ pub struct GameState {
 }
 
 impl GameState {
+    /// Create a new GameState
     pub fn new(columns: i16, rows: i16, interface: &Interface) -> GameState {
         GameState {
             actual_scene: Scenes::HomeScene,
@@ -26,6 +30,7 @@ impl GameState {
             home_scene: HomeScene::new(interface)
         }
     }
+    /// The center of the world
     pub fn get_center_map(&self) -> Vec2 {
         match self.actual_scene {
             Scenes::HomeScene => self.home_scene.get_center_map(),

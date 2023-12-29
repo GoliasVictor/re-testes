@@ -1,4 +1,3 @@
-//! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
 use std::{vec, rc::Rc};
 
 use crate::{

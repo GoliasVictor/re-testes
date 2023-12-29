@@ -132,5 +132,6 @@ pub enum ObjectWrapper {
     SolidColorObject(SolidColorObject),
     /// Wrapper for a objec of a image
     ImageObject(ImageObject),
+    /// Wrapper for a object of a text
     TextObject(TextObject)
 }

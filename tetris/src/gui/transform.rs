@@ -1,4 +1,4 @@
-use crate::{vector2::Vec2, vec2};
+use crate::vector2::Vec2;
 use std::ops::Deref;
 use super::Rect;
 
@@ -152,27 +152,18 @@ impl Camera {
     /// This method takes a 2D vector and returns a transformation matrix that represents the camera's transformation.
     /// The transformation is calculated based on the camera's world and target rectangles.
     pub fn transformation(&self) -> Transform {
-        let translation = self.translation();
         let scale = self.scale();
         Transform::default()
-            .translate(translation)
+            .translate(self.world.center)
             .scale(scale)
             .translate(self.target.center)
     }
-    pub fn translation(&self) -> Vec2 {
-        self.target.center - self.world.center
-    }
+
+    /// The element-wise ratio of target to word size
     pub fn scale(&self) -> Vec2 {
         Vec2 {
             x: self.target.size.x / self.world.size.x,
             y: self.target.size.y / self.world.size.y,
-        }
-    }
-    pub fn world_showed(&self) -> Rect {
-        
-        Rect {
-            center: self.world.center,
-            size: vec2!(self.world.size.x / self.target.size.x, self.world.size.y) * 2.
         }
     }
 }

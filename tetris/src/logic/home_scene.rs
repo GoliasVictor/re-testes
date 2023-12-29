@@ -5,7 +5,7 @@ use glium::{glutin::event::VirtualKeyCode, texture::SrgbTexture2d};
 use crate::{
     gui::{
         interface::{Canvas, Interface},
-        systems::{FontID, TextObject, SolidColorObject, ImageObject},
+        systems::{TextObject, SolidColorObject, ImageObject},
         ObjectWrapper, Rect,
     },
     include_png,
@@ -45,8 +45,7 @@ impl HomeScene {
             text: "Tetris".into(),
             position: vec2!(0., 0.),
             color: [0., 0., 1., 1.],
-            font_size: 20.,
-            font: FontID(1),    
+            font_size: 20.
         }));
     }
 

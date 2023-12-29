@@ -2,7 +2,7 @@
 //! The logic of the game is in `logic` the rest of the modules 
 //! are designed to be part of the logic as if they were an engine but embedded
 #![feature(trait_alias)]
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 pub mod gui;
 /// Module containing the engine core, vital parts such as vectors
 #[macro_use]

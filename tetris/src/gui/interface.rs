@@ -16,10 +16,26 @@ use super::{
     transform::{self, *},
     ObjectWrapper, Rect,
 };
+
+/// Systems for drawing elements on the screen
 pub struct Systems {
     color_system: ColorSystem,
     image_system: ImageSystem,
     text_system: TextSystem<'static>,
+}
+
+impl Systems {
+    /// Load each of the systems, and then initialize `systems`
+    pub fn new(display: &Display) -> Systems {
+        let color_system = ColorSystem::new(display);
+        let image_system = ImageSystem::new(display);
+        let text_system = TextSystem::new(display).unwrap();
+        Systems {
+            color_system, 
+            image_system, 
+            text_system
+        }
+    }    
 }
 /// `Interface` struct is used to encapsulate the display, and camera.
 pub struct Interface {
@@ -27,6 +43,7 @@ pub struct Interface {
     pub display: Display,
     /// The `camera` represents the camera view.
     pub camera: Camera,
+    /// Systems for drawing elements on the screen
     pub systems: Systems
 }
 
@@ -81,14 +98,7 @@ impl Interface {
             },
         };
                 
-        let color_system = ColorSystem::new(&display);
-        let image_system = ImageSystem::new(&display);
-        let text_system = TextSystem::new(&display).unwrap();
-        let systems = Systems {
-            color_system, 
-            image_system, 
-            text_system
-        };
+        let systems = Systems::new(&display);
 
         Interface { camera, display, systems }
     }
