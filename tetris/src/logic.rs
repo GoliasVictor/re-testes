@@ -23,7 +23,7 @@ impl GameState {
         GameState {
             actual_scene: Scenes::HomeScene,
             level_scene: LevelScene::new(columns, rows, interface),
-            home_scene: HomeScene::new(columns, rows, interface)
+            home_scene: HomeScene::new(interface)
         }
     }
     pub fn get_center_map(&self) -> Vec2 {

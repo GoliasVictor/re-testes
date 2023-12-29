@@ -1,19 +1,18 @@
 use std::borrow::Cow;
 use std::rc::Rc;
 
-use  glium::texture::Texture2d;
+use  glium::texture::{Texture2d, self};
 use glium::{implement_vertex, uniform, Display, Frame, Program, Surface};
 
 
 
 use rusttype::gpu_cache::Cache;
 use rusttype::{point, vector, Font, PositionedGlyph, Scale};
+use transform::Camera;
 use std::error::Error;
 
-use crate::{
-    gui::{transform, Rect},
-    vec2,
-};
+use crate::vector2::Vec2;
+use crate::gui::transform;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -23,7 +22,10 @@ struct Vertex {
 }
 pub struct FontID(pub i32);
 pub struct TextObject {
+    pub position : Vec2,
+    pub color : [f32; 4],
 	pub text: String,
+    pub font_size : f32,
 	pub font: FontID
 }
 
@@ -31,33 +33,32 @@ pub struct TextSystem<'a> {
 	program : Program,	
 	cache: Cache<'a>,
 	cache_tex: Rc<Texture2d>,
-	font: Font<'a>
+	font: Rc<Font<'a>>
 }
 
 impl<'a> TextSystem<'a> {
-	pub fn new(display: &Display) -> Result<TextSystem, Box<dyn Error>> {
+	pub fn new(display: &Display) -> Result<TextSystem<'static>, Box<dyn Error>> {
         let vertex_shader_src = include_str!("./shaders/text.vert");
         let fragment_shader_src = include_str!("./shaders/text.frag");
         let program =
             glium::Program::from_source(display, vertex_shader_src, fragment_shader_src, None)
                 .unwrap();
-
 		let dpi_factor = display.gl_window().window().scale_factor();
 		let (cache_width, cache_height) = ((512.0 * dpi_factor) as u32, (512.0 * dpi_factor) as u32);
-		let mut cache = Cache::builder()
+		let cache = Cache::builder()
 			.dimensions(cache_width, cache_height)
 			.build();
 			
-		let cache_tex = Rc::new(glium::texture::Texture2d::with_format(
+		let cache_tex = Rc::new(texture::Texture2d::with_format(
 			display,
-			glium::texture::RawImage2d {
+			texture::RawImage2d {
 				data: Cow::Owned(vec![128u8; cache_width as usize * cache_height as usize]),
 				width: cache_width,
 				height: cache_height,
-				format: glium::texture::ClientFormat::U8,
+				format: texture::ClientFormat::U8,
 			},
-			glium::texture::UncompressedFloatFormat::U8,
-			glium::texture::MipmapsOption::NoMipmap,
+			texture::UncompressedFloatFormat::U8,
+			texture::MipmapsOption::NoMipmap,
 		)?);
 		
 		let font_data = include_bytes!("../../assets/UbuntuMono-R.ttf");
@@ -65,62 +66,26 @@ impl<'a> TextSystem<'a> {
 			panic!();
 		};
 
-		Ok(TextSystem { program, cache, cache_tex, font})
+		Ok(TextSystem { program, cache, cache_tex, font: Rc::new(font)})
     }
     pub fn draw(
         &mut self,
         target: &mut Frame,
         display: &Display,
-        camera_transform: transform::Transform,
+        camera: &Camera,
         object: &TextObject
     )  {
-
-
+        
+        let camera_transform = camera.transformation();
 		let dpi_factor = display.gl_window().window().scale_factor();
-        let (width, _): (u32, _) = display
-            .gl_window()
-            .window()
-            .inner_size()
-            .into();
-        let dpi_factor = dpi_factor as f32;
-		let glyphs: Vec<PositionedGlyph<'_>> = {
-			let font = &self.font;
-			let scale = Scale::uniform(24.0 * dpi_factor);
-			let text: &str = &object.text;
-			let mut result = Vec::new();
-			let v_metrics = font.v_metrics(scale);
-			let advance_height = v_metrics.ascent - v_metrics.descent + v_metrics.line_gap;
-			let mut caret = point(width as f32/2., v_metrics.ascent);
-			let mut last_glyph_id = None;
-			for c in text.chars() {
-				if c.is_control() {
-					match c {
-						'\r' => {
-							caret = point(0.0, caret.y + advance_height);
-						}
-						'\n' => {}
-						_ => {}
-					}
-					continue;
-				}
-				let base_glyph = font.glyph(c);
-				if let Some(id) = last_glyph_id.take() {
-					caret.x += font.pair_kerning(scale, id, base_glyph.id());
-				}
-				last_glyph_id = Some(base_glyph.id());
-				let mut glyph = base_glyph.scaled(scale).positioned(caret);
-				if let Some(bb) = glyph.pixel_bounding_box() {
-					if bb.max.x > width as i32 {
-						caret = point(0.0, caret.y + advance_height);
-						glyph.set_position(caret);
-						last_glyph_id = None;
-					}
-				}
-				caret.x += glyph.unpositioned().h_metrics().advance_width;
-				result.push(glyph);
-			}
-			result
-		};
+        let (width, height): (u32, u32) = display
+        .gl_window()
+        .window()
+        .inner_size()
+        .into();
+        let factor_word_to_screen = (height as f32)/camera.world.size.y; 
+        let dpi_factor = dpi_factor  as f32 ;
+		let glyphs = self.gliphs(object, dpi_factor, factor_word_to_screen, (width as f32 * factor_word_to_screen) as i32 );
         for glyph in &glyphs {
 			let new = glyph.clone();
             self.cache.queue_glyph(0,new );
@@ -133,17 +98,18 @@ impl<'a> TextSystem<'a> {
                     width: rect.width(),
                     height: rect.height(),
                 },
-                glium::texture::RawImage2d {
+                texture::RawImage2d {
                     data: Cow::Borrowed(data),
                     width: rect.width(),
                     height: rect.height(),
-                    format: glium::texture::ClientFormat::U8,
+                    format: texture::ClientFormat::U8,
                 },
             );
         }).unwrap();
 
-		let vertex_buffer = self.vertex_buffer(display, glyphs);
+		let vertex_buffer = self.vertex_buffer(display, camera, object, glyphs);
 		let uniforms = uniform! {
+            matrix:  camera_transform.0,
             tex: self.cache_tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
         target.draw(
@@ -158,29 +124,29 @@ impl<'a> TextSystem<'a> {
         ).unwrap();
 	}
 
-    fn vertex_buffer(&mut self, display: &Display, glyphs: Vec<PositionedGlyph<'_>>) -> glium::VertexBuffer<Vertex> {
+    fn vertex_buffer(&mut self, display: &Display,camera: &Camera, object :  &TextObject, glyphs: Vec<PositionedGlyph<'_>>) -> glium::VertexBuffer<Vertex> {
         implement_vertex!(Vertex, position, tex_coords, colour);
-        let colour = [1.0, 0.0, 0.0, 1.0];
+        let scale = camera.scale();
+        let colour = object.color;
         let (screen_width, screen_height) = {
                     let (w, h) = display.get_framebuffer_dimensions();
                     (w as f32, h as f32)
                 };
-        let origin = point(0., 0.);
+
+        let origin = point(object.position.x, object.position.y);
         let vertices: Vec<Vertex> = glyphs
                     .iter()
                     .flat_map(|g| {
                         if let Ok(Some((uv_rect, screen_rect))) = self.cache.rect_for(0, g) {
                             let gl_rect = rusttype::Rect {
-                                min: origin
-                                    + (vector(
-                                        screen_rect.min.x as f32 / screen_width - 0.5,
-                                        1.0 - screen_rect.min.y as f32 / screen_height - 0.5,
-                                    )) * 2.0,
-                                max: origin
-                                    + (vector(
-                                        screen_rect.max.x as f32 / screen_width - 0.5,
-                                        1.0 - screen_rect.max.y as f32 / screen_height - 0.5,
-                                    )) * 2.0,
+                                min: origin +  vector(
+                                    screen_rect.min.x as f32 / ( screen_width * scale.x ),
+                                    -screen_rect.min.y as f32 / ( screen_height * scale.y ),
+                                ) ,
+                                max: origin +  vector(
+                                         screen_rect.max.x as f32 / (screen_width * scale.x),
+                                         -screen_rect.max.y as f32 / (screen_height * scale.y),
+                                    ),
                             };
                             arrayvec::ArrayVec::<[Vertex; 6]>::from([
                                 Vertex {
@@ -215,10 +181,56 @@ impl<'a> TextSystem<'a> {
                                 },
                             ])
                         } else {
-                            arrayvec::ArrayVec::new()
+                           arrayvec::ArrayVec::new()
                         }
                     })
                     .collect();
         glium::VertexBuffer::new(display, &vertices).unwrap()
     }
+    fn gliphs(&self,object: &TextObject, dpi_factor: f32, factor_word_to_screen: f32, width: i32) -> Vec<PositionedGlyph<'a>> {
+        let font = &self.font;
+        let scale = Scale::uniform(object.font_size * dpi_factor * factor_word_to_screen);
+        let text: &str = &object.text;
+        let mut result = Vec::new();
+        let v_metrics = font.v_metrics(scale);
+        let advance_height = v_metrics.ascent - v_metrics.descent + v_metrics.line_gap ;
+        let mut caret = point(0.,v_metrics.ascent);
+        let mut last_glyph_id = None;
+        for c in text.chars() {
+                    if c.is_control() {
+                        match c {
+                            '\r' => {
+                                caret = point(0.0, caret.y + advance_height);
+                            }
+                            '\n' => {}
+                            _ => {}
+                        }
+                        continue;
+                    }
+                    let mut first_of_line = false;
+                    let base_glyph = font.glyph(c);
+                    if let Some(id) = last_glyph_id.take() {
+                        caret.x += font.pair_kerning(scale, id, base_glyph.id());
+                    } else {
+                        first_of_line = true;
+                    }
+                    last_glyph_id = Some(base_glyph.id());
+                    let glyph = base_glyph.scaled(scale);
+                    if first_of_line {
+                        caret.x += glyph.h_metrics().left_side_bearing;
+                    }
+                    let mut glyph = glyph.positioned(caret);
+                    if let Some(bb) = glyph.pixel_bounding_box() {
+                        if bb.max.x > width {
+                            caret = point(0.0, caret.y + advance_height);
+                            glyph.set_position(caret);
+                            last_glyph_id = None;
+                        }
+                    }
+                    caret.x += glyph.unpositioned().h_metrics().advance_width;
+                    result.push(glyph);
+                }
+        result
+    }
 }
+
