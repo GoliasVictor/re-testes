@@ -1,5 +1,5 @@
-//! This code is a game of tetris, using glium as communication with the interface.
-//! The logic of the game is in `logic` the rest of the modules
+//! This code is a game of tetris, using glium as communication with the interface. 
+//! The logic of the game is in `logic` the rest of the modules 
 //! are designed to be part of the logic as if they were an engine but embedded
 #![feature(trait_alias)]
 #![deny(missing_docs)]
@@ -11,11 +11,7 @@ pub mod logic;
 
 extern crate glium;
 use glium::{
-    glutin::{
-        event,
-        event::{ElementState, KeyboardInput, VirtualKeyCode},
-        event_loop,
-    },
+    glutin::{event, event::{KeyboardInput, ElementState, VirtualKeyCode}, event_loop},
     Surface,
 };
 use std::time;
@@ -24,13 +20,13 @@ pub use crate::core::vector2;
 use crate::{gui::interface, logic::GameState};
 
 fn main() {
-    const TARGET_FPS: u64 = 1;
+    const TARGET_FPS: u64 = 120;
     let event_loop = event_loop::EventLoop::new();
     let mut facade = interface::Interface::create(&event_loop);
-    let mut game_state = GameState::new(10, 20, &facade);
-    let mut last_update = time::Instant::now();
-    let mut last_key: Option<VirtualKeyCode> = None;
-    facade.camera.world.center = vec2!(game_state.columns, game_state.rows) * (logic::SIZE / 2.);
+    let mut game_state = GameState::new(10, 20,&facade);
+    let mut last_update =   time::Instant::now();
+    let mut last_key : Option<VirtualKeyCode> = None;  
+    facade.camera.world.center = vec2!(game_state.columns, game_state.rows) * (logic::SIZE /2. );
     event_loop.run(move |ev, _, control_flow| {
         let start_time = time::Instant::now();
         if let event::Event::WindowEvent { event, .. } = ev {
@@ -51,27 +47,33 @@ fn main() {
                             ..
                         },
                     ..
-                } => match state {
-                    ElementState::Pressed => {
-                        if last_key.is_none() || last_key.is_some_and(|k| k != input) {
-                            game_state.key_down(input);
-                        }
-                        last_key = Some(input);
+                } => {
+                    match state {
+                        ElementState::Pressed => {
+                            if last_key.is_none() || last_key.is_some_and(|k| k != input) {
+                                game_state.key_down(input);
+                            }
+                            last_key = Some(input);
+                        },
+                        ElementState::Released => {
+                            last_key = None;
+                        },
                     }
-                    ElementState::Released => {
-                        last_key = None;
-                    }
+                 
                 },
                 _ => (),
             }
         }
 
+        
         let delta_t = time::Instant::now().duration_since(last_update).as_micros();
         last_update = start_time;
         let mut canvas = facade.draw();
         canvas.target.clear_color(0.0, 0.0, 0.0, 1.0);
         game_state.update(&mut canvas, delta_t);
         canvas.target.finish().unwrap();
+
+
 
         let elapsed_time = time::Instant::now().duration_since(start_time).as_millis() as u64;
         let wait_millis = if 1000 / TARGET_FPS >= elapsed_time {

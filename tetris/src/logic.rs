@@ -1,63 +1,25 @@
 //! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
-
 mod bag;
-use std::{rc::Rc, vec};
+use std::{vec, rc::Rc};
 
 use crate::{
-    gui::{
-        interface::{Canvas, Interface},
-        systems::{ImageObject, SolidColorObject},
-        ObjectWrapper, Rect,
-    },
-    include_png,
-    vector2::{ToVec2, Vec2, Vector2},
+    gui::{interface::{Canvas, Interface}, Rect, ObjectWrapper, systems::{SolidColorObject, ImageObject}},
+    vector2::{ToVec2, Vec2, Vector2}, include_png,
 };
 use glium::glutin::event::VirtualKeyCode;
+use rand::{rngs::ThreadRng, Rng};
 use glium::texture::SrgbTexture2d;
 
 use self::bag::Bag;
 
 #[derive(Clone, Debug)]
 /// Template to create a new tetramino
-pub struct TetraminoTemplate {
+struct TetraminoTemplate {
     /// Binary number for the blocks, first four represent top row, last four represent bottom
     blocks: i16,
     /// The color of the tetramino
     color: (i16, i16, i16),
 }
-
-/// List of the default tretraminos
-const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
-    TetraminoTemplate {
-        blocks: 0b11001100,
-        color: (241, 196, 15),
-    }, // Square
-    TetraminoTemplate {
-        blocks: 0b11100100,
-        color: (142, 68, 173),
-    }, // T
-    TetraminoTemplate {
-        blocks: 0b00101110,
-        color: (230, 126, 34),
-    }, // L
-    TetraminoTemplate {
-        blocks: 0b10001110,
-        color: (41, 128, 185),
-    }, // Reverse L
-    TetraminoTemplate {
-        blocks: 0b11110000,
-        color: (93, 173, 226),
-    }, // Straight
-    TetraminoTemplate {
-        blocks: 0b11000110,
-        color: (231, 76, 60),
-    }, // Z
-    TetraminoTemplate {
-        blocks: 0b01101100,
-        color: (46, 204, 113),
-    }, // S
-];
-
 
 /// Representation of a block of a tetramino in the stack
 #[derive(Debug, Clone)]
@@ -66,14 +28,14 @@ struct Block {
     color: (i16, i16, i16),
 }
 
-/// The tetramino in the game
+/// The tetramino in the game 
 #[derive(Clone, Debug)]
 pub struct Tetramino {
     /// Vector of positions of the tetramino in relation of the center of the tetramino
     ///
-    /// The position can be a fractional value such as 0.25 to keep the center of mass stable,
-    /// however when converting to an integer it is necessary to apply the floor function
-    ///
+    /// The position can be a fractional value such as 0.25 to keep the center of mass stable, 
+    /// however when converting to an integer it is necessary to apply the floor function 
+    /// 
     /// **Warning**: Do not convert to integer by just applying ```as i16```, this is like applying `.trunc` where `-0.25` becomes `0` instead of `-1`, which can cause errors
     block_positions: [Option<Vec2>; 4],
     color: (i16, i16, i16),
@@ -118,7 +80,7 @@ pub struct Player {
     tetramino: Tetramino,
     position: Vector2<i16>,
 }
-/// The size of a tetramino in the map
+/// The size of a tetramino in the map 
 pub const SIZE: f32 = 5.;
 
 /// Get a object in the map based on the position in the grid and the color  
@@ -128,16 +90,17 @@ fn to_object(position: Vector2<i16>, color: (i16, i16, i16)) -> ObjectWrapper {
     f_color[1] = color.1 as f32 / 255.0;
     f_color[2] = color.2 as f32 / 255.0;
     ObjectWrapper::SolidColorObject(SolidColorObject {
-        format: Rect {
-            center: (position.to_vec2() + vec2!(0.5, 0.5)) * SIZE,
-            size: vec2!(SIZE, SIZE),
-        },
-        color: f_color,
-    })
+            format: Rect {
+                center: (position.to_vec2() + vec2!(0.5, 0.5)) * SIZE,
+                size: vec2!(SIZE, SIZE),
+            },
+            color: f_color,
+        }
+    )
 }
 
 impl Player {
-    /// Get a vector of objecto of  each block of the tetramino
+    /// Get a vector of objecto of  each block of the tetramino 
     fn to_object_buffer(&self) -> Vec<ObjectWrapper> {
         self.get_blocks()
             .map(|block| to_object(block, self.tetramino.color))
@@ -164,7 +127,7 @@ pub struct GameState {
     player: Player,
     /// Number of columns in the grid
     pub columns: i16,
-    /// Number of rows in the grid
+    /// Number of rows in the grid 
     pub rows: i16,
     /// Time between the last update that moved the player down and the current one
     time: u128,
@@ -189,7 +152,7 @@ impl GameState {
         }
     }
 
-    /// Create the game state
+    /// Create the game state 
     pub fn new(columns: i16, rows: i16, interface: &Interface) -> GameState {
         let mut bag= Bag::new();
         let tetramino = bag.pop();
@@ -205,7 +168,7 @@ impl GameState {
             rows,
             max_time: 1000000,
             stack: vec![],
-            texture: interface.create_texture(include_png!("./assets/brick.png")),
+            texture:  interface.create_texture(include_png!("./assets/brick.png")),
             bag
         }
     }
@@ -342,36 +305,31 @@ impl GameState {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut wrap = to_object(vec2!(i, j), (64, 64, 64));
-                if let ObjectWrapper::SolidColorObject(object) = &mut wrap {
+                if let ObjectWrapper::SolidColorObject(object)  = &mut wrap {
                     object.format.size = object.format.size * 0.9;
+                 
                 }
-
+                
                 canvas.draw_obj(&wrap);
             }
         }
 
         canvas.draw_buffer(self.player.to_object_buffer().into_iter());
 
-        let buffer = self
-            .stack
-            .iter()
-            .enumerate()
-            .flat_map(|(i, row)| {
-                row.iter().enumerate().flat_map(move |(j, op)| {
-                    op.as_ref()
-                        .map(|b| to_object(vec2!(j as i16, i as i16), b.color))
-                })
+        let buffer = self.stack.iter().enumerate().flat_map(|(i, row)| {
+            row.iter().enumerate().flat_map(move |(j, op)| {
+                op.as_ref()
+                    .map(|b| to_object(vec2!(j as i16, i as i16), b.color))
             })
-            .map(|wrap| {
-                if let ObjectWrapper::SolidColorObject(object) = wrap {
-                    ObjectWrapper::ImageObject(ImageObject {
-                        region: object.format,
-                        texture: self.texture.clone(),
-                    })
-                } else {
-                    wrap
-                }
-            });
+        }).map(|wrap| if let ObjectWrapper::SolidColorObject(object)  = wrap {
+            ObjectWrapper::ImageObject(ImageObject{
+                region: object.format,
+                texture: self.texture.clone()
+            })
+            } else {
+                wrap
+            } 
+           );
         canvas.draw_buffer(buffer);
 
         self.time += delta_t;
