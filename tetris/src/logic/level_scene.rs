@@ -8,48 +8,7 @@ use glium::glutin::event::VirtualKeyCode;
 use rand::{rngs::ThreadRng, Rng};
 use glium::texture::SrgbTexture2d;
 
-use super::SIZE;
-
-#[derive(Clone, Debug)]
-/// Template to create a new tetramino
-struct TetraminoTemplate {
-    /// Binary number for the blocks, first four represent top row, last four represent bottom
-    blocks: i16,
-    /// The color of the tetramino
-    color: (i16, i16, i16),
-}
-
-/// List of the default tretraminos
-const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
-    TetraminoTemplate {
-        blocks: 0b11001100,
-        color: (241, 196, 15),
-    }, // Square
-    TetraminoTemplate {
-        blocks: 0b11100100,
-        color: (142, 68, 173),
-    }, // T
-    TetraminoTemplate {
-        blocks: 0b00101110,
-        color: (230, 126, 34),
-    }, // L
-    TetraminoTemplate {
-        blocks: 0b10001110,
-        color: (41, 128, 185),
-    }, // Reverse L
-    TetraminoTemplate {
-        blocks: 0b11110000,
-        color: (93, 173, 226),
-    }, // Straight
-    TetraminoTemplate {
-        blocks: 0b11000110,
-        color: (231, 76, 60),
-    }, // Z
-    TetraminoTemplate {
-        blocks: 0b01101100,
-        color: (46, 204, 113),
-    }, // S
-];
+use super::{SIZE, bag::Bag};
 
 /// Representation of a block of a tetramino in the stack
 #[derive(Debug, Clone)]
@@ -67,29 +26,11 @@ pub struct Tetramino {
     /// however when converting to an integer it is necessary to apply the floor function 
     /// 
     /// **Warning**: Do not convert to integer by just applying ```as i16```, this is like applying `.trunc` where `-0.25` becomes `0` instead of `-1`, which can cause errors
-    block_positions: [Option<Vec2>; 4],
-    color: (i16, i16, i16),
+    pub block_positions: [Option<Vec2>; 4],
+    pub color: (i16, i16, i16),
 }
 
 impl Tetramino {
-    /// Create a new tetramino based in a template
-    fn new(template: TetraminoTemplate) -> Tetramino {
-        let mut block_positions: [Option<Vec2>; 4] = [Some(vec2!(0.0, 0.0)); 4];
-        let mut i = 0;
-        for x in 0..4 {
-            for y in 0..2 {
-                if template.blocks & (1 << (x + (4 * y))) != 0 {
-                    block_positions[i] = Some(vec2!(x as f32, y as f32));
-                    i += 1;
-                }
-            }
-        }
-
-        Tetramino {
-            color: template.color,
-            block_positions,
-        }
-    }
     /// Get tetramino center relative to its blocks
     fn get_center(&mut self) -> Vec2 {
         let mut center = Vec2::ZERO;
@@ -153,8 +94,6 @@ impl Player {
 pub struct LevelScene {
     /// Actual player in the game  
     player: Player,
-    /// The random number generator  
-    rng: ThreadRng,
     /// Number of columns in the grid
     pub columns: i16,
     /// Number of rows in the grid 
@@ -165,13 +104,14 @@ pub struct LevelScene {
     max_time: u128,
     /// Vector of lines of blocks on the grid
     stack: Vec<Vec<Option<Block>>>,
-    texture: Rc<SrgbTexture2d>
+    texture: Rc<SrgbTexture2d>,
+    bag: Bag
 }
 
 impl LevelScene {
     /// Generate the next player of the game
     fn next_player(&mut self) -> Player {
-        let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[self.rng.gen_range(0..7)].clone());
+        let tetramino = self.bag.pop();
 
         Player {
             position: vec2!(
@@ -184,9 +124,9 @@ impl LevelScene {
 
     /// Create the game state 
     pub fn new(columns: i16, rows: i16, interface: &Interface) -> LevelScene {
-        let mut rng = rand::thread_rng();
+        let mut bag = Bag::new();
 
-        let tetramino = Tetramino::new(TETRAMINO_TEMPLATES[rng.gen_range(0..7)].clone());
+        let tetramino =  bag.pop();
         let player = Player {
             position: vec2!((columns as f32 / 2.).ceil() as i16 - 2, rows - 2),
             tetramino,
@@ -195,12 +135,12 @@ impl LevelScene {
         LevelScene {
             time: 0,
             player,
-            rng,
             columns,
             rows,
             max_time: 1000000,
             stack: vec![],
-            texture:  interface.create_texture(include_png!("../assets/brick.png"))
+            texture:  interface.create_texture(include_png!("../assets/brick.png")),
+            bag
         }
     }
     /// Receives the keypress event

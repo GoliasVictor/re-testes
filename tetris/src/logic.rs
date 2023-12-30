@@ -2,6 +2,7 @@
 
 mod level_scene;
 mod home_scene;
+mod bag;
 use glium::glutin::event::VirtualKeyCode;
 use home_scene::HomeScene;
 use level_scene::LevelScene;
