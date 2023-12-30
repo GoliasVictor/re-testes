@@ -11,18 +11,40 @@ use crate::vec2;
 use crate::vector2::Vec2;
 
 use super::{
-    systems::color_system::ColorSystem,
+    systems::{color_system::ColorSystem, TextSystem},
     systems::image_system::ImageSystem,
     transform::{self, *},
     ObjectWrapper, Rect,
 };
 
+/// Systems for drawing elements on the screen
+pub struct Systems {
+    color_system: ColorSystem,
+    image_system: ImageSystem,
+    text_system: TextSystem<'static>,
+}
+
+impl Systems {
+    /// Load each of the systems, and then initialize `systems`
+    pub fn new(display: &Display) -> Systems {
+        let color_system = ColorSystem::new(display);
+        let image_system = ImageSystem::new(display);
+        let text_system = TextSystem::new(display).unwrap();
+        Systems {
+            color_system, 
+            image_system, 
+            text_system
+        }
+    }    
+}
 /// `Interface` struct is used to encapsulate the display, and camera.
 pub struct Interface {
     /// The `display` represents the display window.
     pub display: Display,
     /// The `camera` represents the camera view.
     pub camera: Camera,
+    /// Systems for drawing elements on the screen
+    pub systems: Systems
 }
 
 impl Interface {
@@ -75,8 +97,10 @@ impl Interface {
                 },
             },
         };
+                
+        let systems = Systems::new(&display);
 
-        Interface { camera, display }
+        Interface { camera, display, systems }
     }
 
     /// Draws the interface.
@@ -90,14 +114,11 @@ impl Interface {
     /// let interface = Interface::create(&event_loop);
     /// let canvas = interface.draw();
     /// ```
-    pub fn draw(&self) -> Canvas {
-        let color_system = ColorSystem::new(&self.display);
-        let image_system = ImageSystem::new(&self.display);
+    pub fn draw(&mut self) -> Canvas {
+
         Canvas {
             target: self.display.draw(),
-            interface: self,
-            color_system,
-            image_system,
+            interface: self
         }
     }
     /// Extract the data from datasource and wrap in a [Rc]
@@ -107,16 +128,16 @@ impl Interface {
     {
         Rc::new(glium::texture::SrgbTexture2d::new(&self.display, source).unwrap())
     }
+
 }
+
 
 /// `Canvas` struct is used for drawing objects on the `Interface`.
 pub struct Canvas<'a> {
     /// Represents the frame where the objects will be drawn.
     pub target: Frame,
     /// Represents the interface where the objects will be drawn.
-    pub interface: &'a Interface,
-    color_system: ColorSystem,
-    image_system: ImageSystem,
+    pub interface: &'a mut Interface,
 }
 
 impl<'a> Canvas<'a> {
@@ -137,21 +158,23 @@ impl<'a> Canvas<'a> {
 
     pub fn draw_obj(&mut self, object: &ObjectWrapper) {
         let camera_transform: transform::Transform =
-            self.interface.camera.get_transformation(Vec2::ZERO);
-
+            self.interface.camera.transformation();
+        let systems = &mut self.interface.systems;
         match object {
-            ObjectWrapper::SolidColorObject(object) => self.color_system.draw(
+            ObjectWrapper::SolidColorObject(object) => systems.color_system.draw(
                 &mut self.target,
                 &self.interface.display,
                 camera_transform,
                 object,
             ),
-            ObjectWrapper::ImageObject(object) => self.image_system.draw(
+            ObjectWrapper::ImageObject(object) => systems.image_system.draw(
                 &mut self.target,
                 &self.interface.display,
                 camera_transform,
                 object,
             ),
+            ObjectWrapper::TextObject(object) =>
+                systems.text_system.draw(&mut self.target, &self.interface.display,&self.interface.camera, object)
         }
     }
 
