@@ -2,6 +2,7 @@ use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
+use crate::core::rgb::Rgb;
 use crate::vector2::Vec2;
 
 use super::level_scene::Tetramino;
@@ -13,7 +14,7 @@ struct TetraminoTemplate {
     /// Binary number for the blocks, first four represent top row, last four represent bottom
     blocks: i16,
     /// The color of the tetramino
-    color: (i16, i16, i16),
+    color: Rgb,
 }
 
 impl TetraminoTemplate {
@@ -41,31 +42,31 @@ impl TetraminoTemplate {
 const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
     TetraminoTemplate {
         blocks: 0b11001100,
-        color: (241, 196, 15),
+        color: Rgb::new(241, 196, 15),
     }, // Square
     TetraminoTemplate {
         blocks: 0b11100100,
-        color: (142, 68, 173),
+        color: Rgb::new(142, 68, 173),
     }, // T
     TetraminoTemplate {
         blocks: 0b00101110,
-        color: (230, 126, 34),
+        color: Rgb::new(230, 126, 34),
     }, // L
     TetraminoTemplate {
         blocks: 0b10001110,
-        color: (41, 128, 185),
+        color: Rgb::new(41, 128, 185),
     }, // Reverse L
     TetraminoTemplate {
         blocks: 0b11110000,
-        color: (93, 173, 226),
+        color: Rgb::new(93, 173, 226),
     }, // Straight
     TetraminoTemplate {
         blocks: 0b11000110,
-        color: (231, 76, 60),
+        color: Rgb::new(231, 76, 60),
     }, // Z
     TetraminoTemplate {
         blocks: 0b01101100,
-        color: (46, 204, 113),
+        color: Rgb::new(46, 204, 113),
     }, // S
 ];
 

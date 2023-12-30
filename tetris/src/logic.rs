@@ -1,5 +1,3 @@
-//! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
-
 mod level_scene;
 mod home_scene;
 mod bag;
@@ -7,19 +5,20 @@ use glium::glutin::event::VirtualKeyCode;
 use home_scene::HomeScene;
 use level_scene::LevelScene;
 
-use crate::{gui::interface::{Interface, Canvas}, vector2::Vec2};
+use crate::gui::{
+    interface::{Canvas, Interface},
+    Rect,
+};
 enum Scenes {
     HomeScene,
-    LevelScene
+    LevelScene,
 }
 
-/// The size of a tetramino in the map 
-pub const SIZE: f32 = 1.;
 /// The state of all game logic
 pub struct GameState {
     actual_scene: Scenes,
-    level_scene : LevelScene,
-    home_scene : HomeScene
+    level_scene: LevelScene,
+    home_scene: HomeScene,
 }
 
 impl GameState {
@@ -28,31 +27,33 @@ impl GameState {
         GameState {
             actual_scene: Scenes::HomeScene,
             level_scene: LevelScene::new(columns, rows, interface),
-            home_scene: HomeScene::new(interface)
+            home_scene: HomeScene::new(interface),
         }
     }
-    /// The center of the world
-    pub fn get_center_map(&self) -> Vec2 {
+    pub fn world_region(&self) -> Rect {
         match self.actual_scene {
-            Scenes::HomeScene => self.home_scene.get_center_map(),
-            Scenes::LevelScene => self.level_scene.get_center_map()
+            Scenes::HomeScene => self.home_scene.world_region(),
+            Scenes::LevelScene => self.level_scene.world_region(),
         }
     }
     /// Receives the keypress event
     pub fn key_down(&mut self, key: VirtualKeyCode) {
         match self.actual_scene {
             Scenes::HomeScene => self.home_scene.key_down(key),
-            Scenes::LevelScene => self.level_scene.key_down(key)
+            Scenes::LevelScene => self.level_scene.key_down(key),
+        }
+        match key {
+            VirtualKeyCode::Key1 => self.actual_scene = Scenes::HomeScene,
+            VirtualKeyCode::Key2 => self.actual_scene = Scenes::LevelScene,
+            _ => (),
         }
     }
 
     /// Updates the game state and draws on the table
-    pub fn update(&mut self, canvas: &mut Canvas, delta_t: u128){
+    pub fn update(&mut self, canvas: &mut Canvas, delta_t: u128) {
         match self.actual_scene {
             Scenes::HomeScene => self.home_scene.update(canvas, delta_t),
-            Scenes::LevelScene => self.level_scene.update(canvas, delta_t)
+            Scenes::LevelScene => self.level_scene.update(canvas, delta_t),
         }
-    } 
-    
+    }
 }
-

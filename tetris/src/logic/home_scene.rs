@@ -6,10 +6,9 @@ use crate::{
     gui::{
         interface::{Canvas, Interface},
         systems::{TextObject, SolidColorObject, ImageObject},
-        ObjectWrapper, Rect,
+        Rect,
     },
-    include_png,
-    vector2::Vec2,
+    include_png, core::rgb::Rgb,
 };
 
 pub struct HomeScene {
@@ -23,33 +22,51 @@ impl HomeScene {
         }
     }
     /// Receives the keypress event
-    pub fn key_down(&mut self, key: VirtualKeyCode) {}
+    pub fn key_down(&mut self, _key: VirtualKeyCode) {}
 
     /// Updates the game state and draws on the table
     pub fn update(&mut self, canvas: &mut Canvas, _delta_t: u128) {
-		canvas.draw_obj(&ObjectWrapper::ImageObject(ImageObject{
-			region: Rect {
-				center:  vec2!(0., 0.) ,
-				size: vec2!(10., 10.),
-			},
-			texture: self.brick.clone()
-		}));
-		canvas.draw_obj(&ObjectWrapper::SolidColorObject(SolidColorObject{
-        	format: Rect {
-        		center:  vec2!(30., -10.) ,
-        		size: vec2!(60., 20.),
-        	},
-			color: [1., 1., 1.]
-		}));
-        canvas.draw_obj(&ObjectWrapper::TextObject(TextObject {
+
+        canvas.draw(TextObject {
             text: "Tetris".into(),
-            position: vec2!(0., 0.),
-            color: [0., 0., 1., 1.],
-            font_size: 20.
-        }));
+            position: vec2!(-30., 80.),
+            color: Rgb::WHITE,
+            font_size: 20.,
+        });
+
+        canvas.draw(SolidColorObject{
+        	region: Rect {
+        		center:  vec2!(0., 0.) ,
+        		size: vec2!(35.+5., 15.),
+        	},
+			color: Rgb::WHITE
+		});
+        canvas.draw(TextObject {
+            text: "Começar".into(),
+            position: vec2!(-17.5, 5.),
+            color: Rgb::BLACK,
+            font_size: 10.,
+        });
+
+        canvas.draw(SolidColorObject{
+        	region: Rect {
+        		center:  vec2!(0., 0.) ,
+        		size: vec2!(35.+5., 15.),
+        	},
+			color: Rgb::WHITE
+		});
+        canvas.draw(TextObject {
+            text: "Começar".into(),
+            position: vec2!(-17.5, 5.),
+            color: Rgb::BLACK,
+            font_size: 10.,
+        });
     }
 
-    pub fn get_center_map(&self) -> Vec2 {
-        vec2!(0., 0.)
+    pub fn world_region(&self) -> Rect {
+        Rect {
+            center: vec2!(0., 0.), 
+            size: vec2!(100., 100.)
+        }
     }
 }

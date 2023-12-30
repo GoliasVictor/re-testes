@@ -154,7 +154,7 @@ impl Camera {
     pub fn transformation(&self) -> Transform {
         let scale = self.scale();
         Transform::default()
-            .translate(self.world.center)
+            .translate(-self.world.center)
             .scale(scale)
             .translate(self.target.center)
     }

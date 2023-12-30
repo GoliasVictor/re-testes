@@ -26,7 +26,6 @@ fn main() {
     let mut game_state = GameState::new(10, 20,&facade);
     let mut last_update =   time::Instant::now();
     let mut last_key : Option<VirtualKeyCode> = None;  
-    facade.camera.world.center = game_state.get_center_map();
     
     event_loop.run(move |ev, _, control_flow| {
         let start_time = time::Instant::now();
@@ -68,6 +67,7 @@ fn main() {
         
         let delta_t = time::Instant::now().duration_since(last_update).as_micros();
         last_update = start_time;
+        facade.camera.world = game_state.world_region();
         let mut canvas = facade.draw();
         canvas.target.clear_color(0.0, 0.0, 0.0, 1.0);
         game_state.update(&mut canvas, delta_t);

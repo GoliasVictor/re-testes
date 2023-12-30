@@ -11,8 +11,10 @@ use rusttype::{point, vector, Font, PositionedGlyph, Scale};
 use std::error::Error;
 use transform::Camera;
 
-use crate::gui::transform;
+use crate::core::rgb::Rgb;
+use crate::gui::systems::rgb_to_arr;
 use crate::vector2::Vec2;
+use crate::gui::transform;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -28,7 +30,7 @@ pub struct TextObject {
     /// The starting position of the text (top left corner)
     pub position: Vec2,
     /// Color of text
-    pub color: [f32; 4],
+    pub color: Rgb,
     /// the text
     pub text: String,
     /// size of font
@@ -89,19 +91,19 @@ impl<'a> TextSystem<'a> {
         target: &mut Frame,
         display: &Display,
         camera: &Camera,
-        object: &TextObject,
-    ) {
+        object: TextObject
+    )  {
+        
         let camera_transform = camera.transformation();
-        let dpi_factor = display.gl_window().window().scale_factor();
-        let (width, height): (u32, u32) = display.gl_window().window().inner_size().into();
-        let factor_word_to_screen = (height as f32) / camera.world.size.y;
-        let dpi_factor = dpi_factor as f32;
-        let glyphs = self.gliphs(
-            object,
-            dpi_factor,
-            factor_word_to_screen,
-            (width as f32 * factor_word_to_screen) as i32,
-        );
+		let dpi_factor = display.gl_window().window().scale_factor();
+        let (width, height): (u32, u32) = display
+        .gl_window()
+        .window()
+        .inner_size()
+        .into();
+        let factor_word_to_screen = (height as f32)/camera.world.size.y; 
+        let dpi_factor = dpi_factor  as f32 ;
+		let glyphs = self.gliphs(&object, dpi_factor, factor_word_to_screen, (width as f32 * factor_word_to_screen) as i32 );
         for glyph in &glyphs {
             let new = glyph.clone();
             self.cache.queue_glyph(0, new);
@@ -125,8 +127,8 @@ impl<'a> TextSystem<'a> {
             })
             .unwrap();
 
-        let vertex_buffer = self.vertex_buffer(display, camera, object, glyphs);
-        let uniforms = uniform! {
+		let vertex_buffer = self.vertex_buffer(display, camera, &object, glyphs);
+		let uniforms = uniform! {
             matrix:  camera_transform.0,
             tex: self.cache_tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
         };
@@ -152,7 +154,7 @@ impl<'a> TextSystem<'a> {
         glyphs: Vec<PositionedGlyph<'_>>,
     ) -> glium::VertexBuffer<Vertex> {
         let scale = camera.scale();
-        let colour = object.color;
+        let colour =  rgb_to_arr(object.color);
         let (screen_width, screen_height) = {
             let (w, h) = display.get_framebuffer_dimensions();
             (w as f32, h as f32)

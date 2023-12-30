@@ -30,9 +30,9 @@ pub struct ImageObject {
 }
 
 impl ImageObject {
-    fn to_vertex_buffer(&self) -> Vec<VertexImage> {
+    fn to_vertex_arr(&self) -> [VertexImage; 6] {
         let Rect { center, size } = self.region;
-        vec![
+        [
             VertexImage {
                 position: (center - size / 2.).into(),
                 tex_coords: [0.0, 0.0],
@@ -88,7 +88,7 @@ impl ImageSystem {
         target: &mut Frame,
         display: &Display,
         camera_transform: transform::Transform,
-        object: &ImageObject,
+        object: ImageObject,
     ) {
         let behavior: uniforms::SamplerBehavior = uniforms::SamplerBehavior {
             minify_filter: uniforms::MinifySamplerFilter::NearestMipmapLinear,
@@ -101,7 +101,7 @@ impl ImageSystem {
         };
         target
             .draw(
-                &glium::VertexBuffer::new(display, &object.to_vertex_buffer()).unwrap(),
+                &glium::VertexBuffer::new(display, &object.to_vertex_arr()).unwrap(),
                 glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
                 &self.program,
                 &uniforms,

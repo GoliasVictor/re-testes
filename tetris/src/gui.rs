@@ -9,8 +9,6 @@ pub use transform::*;
 /// Import the vec2 and vector2::Vec2 modules.
 use crate::vector2::Vec2;
 
-use self::systems::{ImageObject, SolidColorObject, TextObject};
-
 /// Load the bytes in compilation time, and in runtime convert to rgba
 #[macro_export]
 macro_rules! include_png {
@@ -124,14 +122,4 @@ impl Rect {
             && other.bottom() <= self.bottom()
             && self.top() <= other.top()
     }
-}
-
-/// A enum wrapping differents types of objects to draw in screen.
-pub enum ObjectWrapper {
-    /// Wrapper for a object of  SolidColor
-    SolidColorObject(SolidColorObject),
-    /// Wrapper for a objec of a image
-    ImageObject(ImageObject),
-    /// Wrapper for a object of a text
-    TextObject(TextObject)
 }
