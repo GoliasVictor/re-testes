@@ -11,52 +11,10 @@ use crate::{
 };
 use glium::glutin::event::VirtualKeyCode;
 use glium::texture::SrgbTexture2d;
-use rand::{rngs::ThreadRng, Rng};
 
 use super::bag::Bag;
 /// The size of a tetramino in the map
 pub const SIZE: f32 = 5.;
-
-#[derive(Clone, Debug)]
-/// Template to create a new tetramino
-struct TetraminoTemplate {
-    /// Binary number for the blocks, first four represent top row, last four represent bottom
-    blocks: i16,
-    /// The color of the tetramino
-    color: Rgb,
-}
-
-/// List of the default tretraminos
-const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
-    TetraminoTemplate {
-        blocks: 0b1100_1100,
-        color: Rgb::new(241, 196, 15),
-    }, // Square
-    TetraminoTemplate {
-        blocks: 0b1110_0100,
-        color: Rgb::new(142, 68, 173),
-    }, // T
-    TetraminoTemplate {
-        blocks: 0b0010_1110,
-        color: Rgb::new(230, 126, 34),
-    }, // L
-    TetraminoTemplate {
-        blocks: 0b1000_1110,
-        color: Rgb::new(41, 128, 185),
-    }, // Reverse L
-    TetraminoTemplate {
-        blocks: 0b1111_0000,
-        color: Rgb::new(93, 173, 226),
-    }, // Straight
-    TetraminoTemplate {
-        blocks: 0b1100_0110,
-        color: Rgb::new(231, 76, 60),
-    }, // Z
-    TetraminoTemplate {
-        blocks: 0b0110_1100,
-        color: Rgb::new(46, 204, 113),
-    }, // S
-];
 
 /// Representation of a block of a tetramino in the stack
 #[derive(Debug, Clone)]
@@ -79,23 +37,6 @@ pub struct Tetramino {
 }
 
 impl Tetramino {
-    /// Create a new tetramino based in a template
-    fn new(template: &TetraminoTemplate) -> Tetramino {
-        let mut block_positions: [Option<Vec2>; 4] = [Some(vec2!(0.0, 0.0)); 4];
-        let mut i = 0;
-        for x in 0..4 {
-            for y in 0..2 {
-                if template.blocks & (1 << (x + (4 * y))) != 0 {
-                    block_positions[i] = Some(vec2!(x as f32, y as f32));
-                    i += 1;
-                }
-            }
-        }
-        Tetramino {
-            block_positions,
-            color: template.color,
-        }
-    }
     /// Get tetramino center relative to its blocks
     fn get_center(&mut self) -> Vec2 {
         let mut center = Vec2::ZERO;

@@ -1,3 +1,4 @@
+//! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
 mod level_scene;
 mod home_scene;
 mod bag;
@@ -30,6 +31,7 @@ impl GameState {
             home_scene: HomeScene::new(interface),
         }
     }
+    /// Returns the region in the world being shown
     pub fn world_region(&self) -> Rect {
         match self.actual_scene {
             Scenes::HomeScene => self.home_scene.world_region(),

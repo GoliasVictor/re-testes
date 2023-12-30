@@ -5,7 +5,7 @@ use glium::{glutin::event::VirtualKeyCode, texture::SrgbTexture2d};
 use crate::{
     gui::{
         interface::{Canvas, Interface},
-        systems::{TextObject, SolidColorObject, ImageObject},
+        systems::{TextObject, SolidColorObject},
         Rect,
     },
     include_png, core::rgb::Rgb,

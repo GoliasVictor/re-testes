@@ -2,7 +2,7 @@
 use std::rc::Rc;
 
 use glium::{
-    glutin::{self, event_loop, window, platform::unix::WindowBuilderExtUnix},
+    glutin::{self, event_loop, window},
     texture::Texture2dDataSource,
     Display, Frame,
 };

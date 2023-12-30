@@ -16,8 +16,9 @@ use crate::core::rgb::Rgb;
 pub enum ObjectWrapper {
     /// Wrapper for a object of  SolidColor
     SolidColorObject(SolidColorObject),
-    /// Wrapper for a objec of a image
+    /// Wrapper for a object of a image
     ImageObject(ImageObject),
+    /// Wrapper for a object of a text
     TextObject(TextObject),
 }
 
@@ -34,14 +35,18 @@ macro_rules! wrap {
 wrap! {SolidColorObject}
 wrap! {ImageObject}
 wrap! {TextObject}
-
+/// Systems for drawing elements on the screen
 pub struct Systems {
+	/// System do draw [SolidColorObject] in screen
     pub color_system: ColorSystem,
+	/// System do draw [ImageObject] in screen
     pub image_system: ImageSystem,
+	/// System do draw [TextObject] in screen
     pub text_system: TextSystem<'static>,
 }
 
 impl Systems {
+	/// Load each `System` and initialize `Systems`
     pub fn new(display: &Display) -> Systems {
         let color_system = ColorSystem::new(display);
         let image_system = ImageSystem::new(display);
