@@ -71,7 +71,7 @@ impl<T: Field> Vector2<T>{
    /// ```
    
     #[inline]
-    pub  fn new<K: Into<T>>( x: K, y: K) -> Self {
+    pub fn new<K: Into<T>>( x: K, y: K) -> Self {
         Vector2 {
             x: x.into(), 
             y: y.into()
@@ -124,9 +124,6 @@ impl Vec2 {
    /// The zero vector.
    pub const ZERO: Vec2 = Vec2 { x: 0., y: 0. };
 }
-
-/// A macro to create a new `Vector2`.
-///
 /// # Examples
 ///
 /// ```

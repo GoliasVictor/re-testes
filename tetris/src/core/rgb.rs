@@ -12,7 +12,7 @@ pub struct Rgb {
 
 impl Rgb {
 	/// Representation of red in RGB 
-	pub const RED : Rgb = Rgb::new(255,0,255);
+	pub const RED : Rgb = Rgb::new(255,0,0);
 	/// Representation of green in RGB 
 	pub const GREEN : Rgb = Rgb::new(0,255,0);
 	/// Representation of blue in RGB 

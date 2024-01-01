@@ -1,4 +1,4 @@
-use crate::vector2::Vec2;
+use crate::{vector2::Vec2, vec2};
 use std::ops::Deref;
 use super::Rect;
 
@@ -165,5 +165,21 @@ impl Camera {
             x: self.target.size.x / self.world.size.x,
             y: self.target.size.y / self.world.size.y,
         }
+    }
+    /// transforms a position from the world to the target
+    pub fn world_to_target(&self, mut pos : Vec2) -> Vec2 {
+        let scale = self.scale();
+        pos -= self.world.center;
+        pos = vec2!(pos.x * scale.x, pos.y * scale.y);
+        pos += self.target.center;
+        pos
+    }
+    /// transforms a position from the target to the world 
+    pub fn target_to_world(&self, mut pos: Vec2)-> Vec2  {
+        let scale = self.scale();
+        pos -= self.target.center;
+        pos = vec2!(pos.x / scale.x, pos.y / scale.y);
+        pos += self.world.center;
+        pos
     }
 }

@@ -12,7 +12,7 @@ use crate::{
 use glium::glutin::event::VirtualKeyCode;
 use glium::texture::SrgbTexture2d;
 
-use super::bag::Bag;
+use super::{bag::Bag, Scene};
 /// The size of a tetramino in the map
 pub const SIZE: f32 = 5.;
 
@@ -130,9 +130,10 @@ impl LevelScene {
     }
 
     /// Create the game state
-    pub fn new(columns: i16, rows: i16, interface: &Interface) -> LevelScene {
+    pub fn new(interface: &Interface) -> LevelScene {
         let mut bag = Bag::new();
-
+        let columns  = 10;
+        let rows = 20;
         let tetramino =  bag.pop();
         let player = Player {
             position: vec2!((columns as f32 / 2.).ceil() as i16 - 2, rows - 2),
@@ -151,7 +152,7 @@ impl LevelScene {
         }
     }
     /// Receives the keypress event
-    pub fn key_down(&mut self, key: VirtualKeyCode) {
+    pub fn key_down(&mut self, key: VirtualKeyCode) -> Scene {
         match key {
             VirtualKeyCode::Up => {
                 self.rotate_player();
@@ -171,7 +172,8 @@ impl LevelScene {
             }
             VirtualKeyCode::R => self.restart(),
             _ => (),
-        }
+        };
+        Scene::LevelScene
     }
 
     /// Move the player to the end of the stack and put he in
@@ -279,7 +281,7 @@ impl LevelScene {
         }
     }
     /// Updates the game state and draws on the table
-    pub fn update(&mut self, canvas: &mut Canvas, delta_t: u128) {
+    pub fn update(&mut self, canvas: &mut Canvas, delta_t: u128) -> Scene {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut object = SolidColorObject {
@@ -310,5 +312,9 @@ impl LevelScene {
             }
             self.time -= self.max_time;
         }
+        Scene::LevelScene
+    }
+    pub fn on_click(&mut self, position : Vec2) -> Scene {
+        Scene::LevelScene
     }
 }
