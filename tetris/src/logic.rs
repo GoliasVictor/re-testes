@@ -34,9 +34,6 @@ impl GameState {
         }
     }
     fn update_scene(&mut self, new_scene: Scene){
-        if self.actual_scene == new_scene {
-            return;
-        }
         self.actual_scene = new_scene;        
     }
     /// Returns the region in the world being shown

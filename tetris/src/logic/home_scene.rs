@@ -60,19 +60,7 @@ impl HomeScene {
             font_size: 10.,
         });
 
-        canvas.draw(SolidColorObject{
-        	region: Rect {
-        		center:  vec2!(0., 0.) ,
-        		size: vec2!(35.+5., 15.),
-        	},
-			color: Rgb::WHITE
-		});
-        canvas.draw(TextObject {
-            text: "Começar".into(),
-            position: vec2!(-17.5, 5.),
-            color: Rgb::BLACK,
-            font_size: 10.,
-        });
+
         Scene::HomeScene
     }
 

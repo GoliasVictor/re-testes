@@ -99,12 +99,13 @@ impl Bag {
 
     /// Pop piece from bag
     pub fn pop(&mut self) -> Tetramino {
-        if self.list.len() < 3 {
+        if self.list.len() < 4 {
             self.populate();
         }
-        self.list.pop().unwrap()
+        self.list.remove(0)
     }
     pub fn next_tetraminos(&self) -> [&Tetramino; 3] {
+        let l =self.list.len();
         [&self.list[0], &self.list[1], &self.list[2]]
     }
 }
