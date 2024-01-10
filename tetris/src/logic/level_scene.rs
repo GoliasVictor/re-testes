@@ -1,33 +1,39 @@
 use std::{vec, rc::Rc};
 
 use crate::{
-    gui::{interface::{Canvas, Interface}, Rect, ObjectWrapper, systems::{SolidColorObject, ImageObject}},
-    vector2::{ToVec2, Vec2, Vector2}, include_png,
+    gui::{
+        interface::{Canvas, Interface},
+        systems::{ImageObject, SolidColorObject, TextObject},
+        Rect,
+    },
+    include_png,
+    vector2::{ToVec2, Vec2, Vector2}, core::rgb::Rgb,
 };
 use glium::glutin::event::VirtualKeyCode;
-use rand::{rngs::ThreadRng, Rng};
 use glium::texture::SrgbTexture2d;
 
-use super::{SIZE, bag::Bag};
+use super::{bag::Bag, Scene};
+/// The size of a tetramino in the map
+pub const SIZE: f32 = 5.;
 
 /// Representation of a block of a tetramino in the stack
 #[derive(Debug, Clone)]
 struct Block {
     /// The color of the block
-    color: (i16, i16, i16),
+    color: Rgb,
 }
 
-/// The tetramino in the game 
+/// The tetramino in the game
 #[derive(Clone, Debug)]
 pub struct Tetramino {
     /// Vector of positions of the tetramino in relation of the center of the tetramino
     ///
-    /// The position can be a fractional value such as 0.25 to keep the center of mass stable, 
-    /// however when converting to an integer it is necessary to apply the floor function 
-    /// 
+    /// The position can be a fractional value such as 0.25 to keep the center of mass stable,
+    /// however when converting to an integer it is necessary to apply the floor function
+    ///
     /// **Warning**: Do not convert to integer by just applying ```as i16```, this is like applying `.trunc` where `-0.25` becomes `0` instead of `-1`, which can cause errors
     pub block_positions: [Option<Vec2>; 4],
-    pub color: (i16, i16, i16),
+    pub color: Rgb,
 }
 
 impl Tetramino {
@@ -43,6 +49,25 @@ impl Tetramino {
         center /= block_count as f32;
         center
     }
+    fn get_blocks(&self, position : Vector2<i16>) -> vec::IntoIter<Vector2<i16>>{
+        self.block_positions
+            .into_iter()
+            .flatten()
+            .map(|block| Vector2 {
+                x: (position.x as f32 + block.x).floor() as i16,
+                y: (position.y as f32 + block.y).floor() as i16,
+            })
+            .collect::<Vec<Vector2<i16>>>()
+            .into_iter()
+    }
+    fn object_vec(&self, pos: Vector2<i16>) -> Vec<SolidColorObject> {
+        self.get_blocks(pos)
+            .map(|position| SolidColorObject {
+                region: grid_region(position),
+                color: self.color,
+            })
+            .collect()
+    }
 }
 
 /// The informations of the player in the grid
@@ -53,40 +78,21 @@ pub struct Player {
 }
 
 /// Get a object in the map based on the position in the grid and the color  
-fn to_object(position: Vector2<i16>, color: (i16, i16, i16)) -> ObjectWrapper {
-    let mut f_color: [f32; 3] = [0.0; 3];
-    f_color[0] = color.0 as f32 / 255.0;
-    f_color[1] = color.1 as f32 / 255.0;
-    f_color[2] = color.2 as f32 / 255.0;
-    ObjectWrapper::SolidColorObject(SolidColorObject {
-            format: Rect {
-                center: (position.to_vec2() + vec2!(0.5, 0.5)) * SIZE,
-                size: vec2!(SIZE, SIZE),
-            },
-            color: f_color,
-        }
-    )
+fn grid_region(position: Vector2<i16>) -> Rect {
+    Rect {
+        center: (position.to_vec2() + vec2!(0.5, 0.5)) * SIZE,
+        size: vec2!(SIZE, SIZE),
+    }
 }
 
 impl Player {
-    /// Get a vector of objecto of  each block of the tetramino 
-    fn to_object_buffer(&self) -> Vec<ObjectWrapper> {
-        self.get_blocks()
-            .map(|block| to_object(block, self.tetramino.color))
-            .collect()
+    /// Get a vector of objecto of  each block of the tetramino
+    fn object_vec(&self) -> Vec<SolidColorObject> {
+        self.tetramino.object_vec(self.position)
     }
     /// Returns a vector containing each position of the tetramino blocks relative to the origin
     fn get_blocks(&self) -> vec::IntoIter<Vector2<i16>> {
-        self.tetramino
-            .block_positions
-            .into_iter()
-            .flatten()
-            .map(|block| Vector2 {
-                x: (self.position.x as f32 + block.x).floor() as i16,
-                y: (self.position.y as f32 + block.y).floor() as i16,
-            })
-            .collect::<Vec<Vector2<i16>>>()
-            .into_iter()
+        self.tetramino.get_blocks(self.position)
     }
 }
 /// Represent the actual state of the game
@@ -96,7 +102,7 @@ pub struct LevelScene {
     player: Player,
     /// Number of columns in the grid
     pub columns: i16,
-    /// Number of rows in the grid 
+    /// Number of rows in the grid
     pub rows: i16,
     /// Time between the last update that moved the player down and the current one
     time: u128,
@@ -104,11 +110,19 @@ pub struct LevelScene {
     max_time: u128,
     /// Vector of lines of blocks on the grid
     stack: Vec<Vec<Option<Block>>>,
+    score: u32,
     texture: Rc<SrgbTexture2d>,
-    bag: Bag
+    bag: Bag,
+    loss : bool
 }
 
 impl LevelScene {
+    pub fn world_region(&self) -> Rect {
+        Rect {
+            center: vec2!(self.columns as f32, self.rows as f32) * SIZE / 2.,
+            size: vec2!(100., 100.),
+        }
+    }
     /// Generate the next player of the game
     fn next_player(&mut self) -> Player {
         let tetramino = self.bag.pop();
@@ -122,10 +136,11 @@ impl LevelScene {
         }
     }
 
-    /// Create the game state 
-    pub fn new(columns: i16, rows: i16, interface: &Interface) -> LevelScene {
+    /// Create the game state
+    pub fn new(interface: &Interface) -> LevelScene {
         let mut bag = Bag::new();
-
+        let columns  = 10;
+        let rows = 20;
         let tetramino =  bag.pop();
         let player = Player {
             position: vec2!((columns as f32 / 2.).ceil() as i16 - 2, rows - 2),
@@ -140,11 +155,13 @@ impl LevelScene {
             max_time: 1000000,
             stack: vec![],
             texture:  interface.create_texture(include_png!("../assets/brick.png")),
-            bag
+            bag,
+            score: 0,
+            loss: false
         }
     }
     /// Receives the keypress event
-    pub fn key_down(&mut self, key: VirtualKeyCode) {
+    pub fn key_down(&mut self, key: VirtualKeyCode) -> Scene {
         match key {
             VirtualKeyCode::Up => {
                 self.rotate_player();
@@ -164,7 +181,8 @@ impl LevelScene {
             }
             VirtualKeyCode::R => self.restart(),
             _ => (),
-        }
+        };
+        Scene::LevelScene
     }
 
     /// Move the player to the end of the stack and put he in
@@ -172,7 +190,11 @@ impl LevelScene {
     /// going down until he finds a block or the floor
     /// and then puts him in the final position
     fn move_to_end(&mut self) {
-        while self.translate_player(vec2!(0_i16, -1)) {}
+        let mut i = 0;
+        while self.translate_player(vec2!(0_i16, -1)) { 
+            i += 1;
+        }
+        self.score += i*2;
         self.add_player_to_stack();
     }
 
@@ -181,7 +203,9 @@ impl LevelScene {
     /// Clears the stack and generates a new player
     fn restart(&mut self) {
         self.stack = vec![];
-        self.player = self.next_player()
+        self.player = self.next_player();
+        self.score = 0;
+        self.loss = true;
     }
 
     /// Checks whether a player block can be in the received position
@@ -266,42 +290,63 @@ impl LevelScene {
         while i < self.stack.len() {
             if self.stack[i].iter().all(Option::is_some) {
                 self.stack.remove(i);
+                self.score += 100;
             } else {
                 i += 1;
             }
         }
     }
     /// Updates the game state and draws on the table
-    pub fn update(&mut self, canvas: &mut Canvas, delta_t: u128) {
+    pub fn update(&mut self, canvas: &mut Canvas, delta_t: u128) -> Scene {
+        if self.loss {
+            self.loss = false;
+            return Scene::HomeScene;
+        }
         for i in 0..self.columns {
             for j in 0..self.rows {
-                let mut wrap = to_object(vec2!(i, j), (64, 64, 64));
-                if let ObjectWrapper::SolidColorObject(object)  = &mut wrap {
-                    object.format.size = object.format.size * 0.9;
-                 
-                }
-                
-                canvas.draw_obj(&wrap);
+                let mut object = SolidColorObject {
+                    region: grid_region(vec2!(i, j)),
+                    color: Rgb::new(64, 64, 64),
+                };
+                object.region.size = object.region.size * 0.9;
+                canvas.draw(object);
             }
         }
+        
+        for (i, row) in self.stack.iter().enumerate() {
+            for (j,  op) in  row.iter().enumerate() {
+                if let Some(Block {color})  = op{
+                    canvas.draw(SolidColorObject {
+                        region: grid_region(vec2!(j as i16, i as i16)),
+                        color: *color,
+                    });
+                }
+            }
+        };
 
-        canvas.draw_buffer(self.player.to_object_buffer().into_iter());
+        canvas.draw(TextObject{
+            color: Rgb::WHITE,
+            font_size: 5., 
+            position: vec2!(52., 100.),
+            text: format!("score: {}", self.score)
+        });
+        
+        canvas.draw(TextObject{
+            color: Rgb::WHITE,
+            font_size: 5., 
+            position: vec2!(52., 80.),
+            text: "next tetraminos".to_owned()
+        });
+        let nexts = self.bag.next_tetraminos();
+        for (i, tetramino) in nexts.into_iter().enumerate() {
+            let pos = vec2!(52,  50 - i as i16 * 15 );
+            canvas.draw_iter(tetramino.object_vec(vec2!(0_i16,0)).into_iter().map(|mut obj| {
+                obj.region.center += pos;
+                obj
+            }));
+        }
 
-        let buffer = self.stack.iter().enumerate().flat_map(|(i, row)| {
-            row.iter().enumerate().flat_map(move |(j, op)| {
-                op.as_ref()
-                    .map(|b| to_object(vec2!(j as i16, i as i16), b.color))
-            })
-        }).map(|wrap| if let ObjectWrapper::SolidColorObject(object)  = wrap {
-            ObjectWrapper::ImageObject(ImageObject{
-                region: object.format,
-                texture: self.texture.clone()
-            })
-            } else {
-                wrap
-            } 
-           );
-        canvas.draw_buffer(buffer);
+        canvas.draw_iter(self.player.object_vec());
 
         self.time += delta_t;
         if self.time >= self.max_time {
@@ -310,8 +355,10 @@ impl LevelScene {
             }
             self.time -= self.max_time;
         }
+
+        Scene::LevelScene
     }
-    pub fn get_center_map(&self) -> Vec2 {
-        vec2!(self.columns, self.rows) * (SIZE /2. )
-	}
+    pub fn on_click(&mut self, position : Vec2) -> Scene {
+        Scene::LevelScene
+    }
 }

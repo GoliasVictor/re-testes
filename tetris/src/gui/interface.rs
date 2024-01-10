@@ -11,32 +11,11 @@ use crate::vec2;
 use crate::vector2::Vec2;
 
 use super::{
-    systems::{color_system::ColorSystem, TextSystem},
-    systems::image_system::ImageSystem,
+    systems::{Systems, ObjectWrapper},
     transform::{self, *},
-    ObjectWrapper, Rect,
+    Rect,
 };
 
-/// Systems for drawing elements on the screen
-pub struct Systems {
-    color_system: ColorSystem,
-    image_system: ImageSystem,
-    text_system: TextSystem<'static>,
-}
-
-impl Systems {
-    /// Load each of the systems, and then initialize `systems`
-    pub fn new(display: &Display) -> Systems {
-        let color_system = ColorSystem::new(display);
-        let image_system = ImageSystem::new(display);
-        let text_system = TextSystem::new(display).unwrap();
-        Systems {
-            color_system, 
-            image_system, 
-            text_system
-        }
-    }    
-}
 /// `Interface` struct is used to encapsulate the display, and camera.
 pub struct Interface {
     /// The `display` represents the display window.
@@ -46,6 +25,7 @@ pub struct Interface {
     /// Systems for drawing elements on the screen
     pub systems: Systems
 }
+
 
 impl Interface {
     /// Creates a new display for the event loop.
@@ -63,7 +43,7 @@ impl Interface {
         let wb: window::WindowBuilder = window::WindowBuilder::new()
             .with_decorations(true)
             .with_maximized(true)
-            .with_resizable(true)
+            .with_resizable(false)
             .with_title("hello")
             .with_always_on_top(false);
         let cb = glutin::ContextBuilder::new();
@@ -156,11 +136,12 @@ impl<'a> Canvas<'a> {
     /// canvas.draw_obj(&object);
     /// ```
 
-    pub fn draw_obj(&mut self, object: &ObjectWrapper) {
+    pub fn draw<T : Into<ObjectWrapper>>(&mut  self, source: T) {
         let camera_transform: transform::Transform =
             self.interface.camera.transformation();
         let systems = &mut self.interface.systems;
-        match object {
+        let wrapper = Into::<ObjectWrapper>::into(source);
+        match wrapper {
             ObjectWrapper::SolidColorObject(object) => systems.color_system.draw(
                 &mut self.target,
                 &self.interface.display,
@@ -178,7 +159,7 @@ impl<'a> Canvas<'a> {
         }
     }
 
-    /// Draws a buffer of objects on the canvas.
+    /// Draws all objects of a iterator on the canvas.
     ///
     /// This function takes an iterator of objects and draws them on the canvas.
     /// It uses the transformation of the camera to determine the position of the objects.
@@ -190,12 +171,12 @@ impl<'a> Canvas<'a> {
     /// let interface = Interface::create(&event_loop);
     /// let mut canvas = interface.draw();
     /// let objects = vec![Object::new(...), Object::new(...)];
-    /// canvas.draw_buffer(objects.into_iter());
+    /// canvas.draw_ider(objects.into_iter());
     /// ```
 
-    pub fn draw_buffer<T: Iterator<Item = ObjectWrapper>>(&mut self, buffer: T) {
-        for object in buffer {
-            self.draw_obj(&object);
+    pub fn draw_iter<I: Into<ObjectWrapper> ,T: IntoIterator<Item = I>>(&mut self, iter: T) {
+        for object in iter.into_iter().collect::<Vec<I>>() {
+            self.draw(object);
         }
     }
 }
