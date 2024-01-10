@@ -2,9 +2,41 @@ use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
+use crate::vector2::Vec2;
 
-use super::{Tetramino, TetraminoTemplate};
+use super::level_scene::Tetramino;
 
+
+#[derive(Debug)]
+/// Template to create a new tetramino
+struct TetraminoTemplate {
+    /// Binary number for the blocks, first four represent top row, last four represent bottom
+    blocks: i16,
+    /// The color of the tetramino
+    color: (i16, i16, i16),
+}
+
+impl TetraminoTemplate {
+    /// Create a new tetramino based in a template
+    fn build(self) -> Tetramino {
+        let mut block_positions: [Option<Vec2>; 4] = [Some(vec2!(0.0, 0.0)); 4];
+        let mut i = 0;
+        for x in 0..4 {
+            for y in 0..2 {
+                if self.blocks & (1 << (x + (4 * y))) != 0 {
+                    block_positions[i] = Some(vec2!(x as f32, y as f32));
+                    i += 1;
+                }
+            }
+        }
+
+        Tetramino {
+            color: self.color,
+            block_positions,
+        }
+    }
+    
+}
 /// List of the default tretraminos
 const TETRAMINO_TEMPLATES: [TetraminoTemplate; 7] = [
     TetraminoTemplate {
@@ -59,7 +91,7 @@ impl Bag {
 
     /// Populate bag
     pub fn populate(&mut self) {
-        let mut new_tetraminos = TETRAMINO_TEMPLATES.map(Tetramino::new).to_vec();
+        let mut new_tetraminos = TETRAMINO_TEMPLATES.map(TetraminoTemplate::build).to_vec();
         new_tetraminos.shuffle(&mut self.rng);
         self.list.extend(new_tetraminos);
     }

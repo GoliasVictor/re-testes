@@ -26,7 +26,8 @@ fn main() {
     let mut game_state = GameState::new(10, 20,&facade);
     let mut last_update =   time::Instant::now();
     let mut last_key : Option<VirtualKeyCode> = None;  
-    facade.camera.world.center = vec2!(game_state.columns, game_state.rows) * (logic::SIZE /2. );
+    facade.camera.world.center = game_state.get_center_map();
+    
     event_loop.run(move |ev, _, control_flow| {
         let start_time = time::Instant::now();
         if let event::Event::WindowEvent { event, .. } = ev {
@@ -36,8 +37,7 @@ fn main() {
                     return;
                 }
                 event::WindowEvent::Resized(window_size) => {
-                    facade.camera.target.size.x =
-                        (window_size.height as f32) / (window_size.width as f32);
+                    facade.camera.target.size.x = (window_size.height as f32) / (window_size.width as f32);
                 }
                 event::WindowEvent::KeyboardInput {
                     input:
@@ -72,8 +72,6 @@ fn main() {
         canvas.target.clear_color(0.0, 0.0, 0.0, 1.0);
         game_state.update(&mut canvas, delta_t);
         canvas.target.finish().unwrap();
-
-
 
         let elapsed_time = time::Instant::now().duration_since(start_time).as_millis() as u64;
         let wait_millis = if 1000 / TARGET_FPS >= elapsed_time {

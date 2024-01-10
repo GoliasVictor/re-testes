@@ -99,7 +99,6 @@ impl ImageSystem {
             matrix:  camera_transform.0,
             tex:  uniforms::Sampler(&*object.texture, behavior),
         };
-
         target
             .draw(
                 &glium::VertexBuffer::new(display, &object.to_vertex_buffer()).unwrap(),
