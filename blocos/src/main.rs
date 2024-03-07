@@ -1,4 +1,4 @@
-//! This code is a game of tetris, using glium as communication with the interface. 
+//! This code is a game of blocos, using glium as communication with the interface. 
 //! The logic of the game is in `logic` the rest of the modules 
 //! are designed to be part of the logic as if they were an engine but embedded
 #![feature(trait_alias)]

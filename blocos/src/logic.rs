@@ -1,4 +1,4 @@
-//! Module containing the specific mechanics of the Tetris game, such as receiving events, etc.
+//! Module containing the specific mechanics of the Blocos game, such as receiving events, etc.
 mod level_scene;
 mod home_scene;
 mod bag;

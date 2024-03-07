@@ -43,7 +43,7 @@ impl HomeScene {
     pub fn update(&mut self, canvas: &mut Canvas, _delta_t: u128) -> Scene {
 
         canvas.draw(TextObject {
-            text: "Tetris".into(),
+            text: "Blocos".into(),
             position: vec2!(-30., 80.),
             color: Rgb::WHITE,
             font_size: 20.,
